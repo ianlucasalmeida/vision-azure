@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision-Serveless - Painel de Controle</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+            color: var(--gray-700);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: var(--gray-600);
+            font-size: 1.1rem;
+        }
+
+        .status-bar {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--gray-200);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--gray-200);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .card h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .icon {
+            width: 24px;
+            height: 24px;
+            fill: var(--primary);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            color: var(--gray-700);
+            margin-bottom: 0.5rem;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        input[type="file"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        input[type="file"]:focus,
+        input[type="number"]:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .loading {
+            display: none;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .separator {
+            height: 1px;
+            background: var(--gray-200);
+            margin: 2rem 0;
+        }
+
+        .terminal {
+            background: var(--gray-900);
+            color: #00ff00;
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.875rem;
+            height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            border: 1px solid var(--gray-700);
+        }
+
+        .terminal::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .terminal::-webkit-scrollbar-track {
+            background: var(--gray-800);
+        }
+
+        .terminal::-webkit-scrollbar-thumb {
+            background: var(--gray-600);
+            border-radius: 3px;
+        }
+
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .stats-table th {
+            background: var(--gray-50);
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--gray-700);
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .stats-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .stats-table tr:hover {
+            background: var(--gray-50);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            background: var(--primary);
+            color: white;
+            margin-left: 0.5rem;
+        }
+
+        .toast {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--error);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .card {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Vision-Serveless</h1>
+            <p>Painel de Controle para Processamento de Mídia</p>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <span>Sistema Online - LocalStack Conectado</span>
+            </div>
+        </div>
+
+        <div id="results" class="terminal">Aguardando requisição...</div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                    </svg>
+                    Processamento de Imagem
+                </h2>
+
+                <form class="upload-form">
+                    <input type="hidden" name="operation" value="img_to_bw">
+                    <div class="form-group">
+                        <label>Converter para Preto e Branco</label>
+                        <div class="input-group">
+                            <input type="file" name="file" accept="image/*" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <svg class="loading" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 4V2A10 10 0 0 0 2 12h2a8 8 0 0 1 8-8Z"/>
+                        </svg>
+                        Executar Conversão
+                    </button>
+                </form>
+
+                <div class="separator"></div>
+
+                <form class="upload-form">
+                    <input type="hidden" name="operation" value="img_change_format">
+                    <div class="form-group">
+                        <label>Converter Formato de Imagem</label>
+                        <div class="input-group">
+                            <input type="file" name="file" accept="image/*" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Formato de Destino</label>
+                        <select name="params" required>
+                            <option value="">Selecione o formato</option>
+                            <option value="jpeg">JPEG</option>
+                            <option value="png">PNG</option>
+                            <option value="webp">WebP</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <svg class="loading" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 4V2A10 10 0 0 0 2 12h2a8 8 0 0 1 8-8Z"/>
+                        </svg>
+                        Converter Formato
+                    </button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+                    </svg>
+                    Processamento de Vídeo
+                </h2>
+
+                <form class="upload-form">
+                    <input type="hidden" name="operation" value="extract_frame">
+                    <div class="form-group">
+                        <label>Extrair Frame de Vídeo</label>
+                        <div class="input-group">
+                            <input type="file" name="file" accept="video/*" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Segundo para Extrair</label>
+                        <input type="number" name="params" placeholder="Ex: 5" min="0" step="1" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <svg class="loading" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 4V2A10 10 0 0 0 2 12h2a8 8 0 0 1 8-8Z"/>
+                        </svg>
+                        Extrair Frame
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>
+                    </svg>
+                    Estatísticas de Uso
+                </h2>
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>Operação</th>
+                            <th>Execuções</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stats-body">
+                        <tr><td colspan="2">Carregando estatísticas...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <h2>
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                    </svg>
+                    Logs da Aplicação
+                </h2>
+                <div id="logs" class="terminal">Carregando logs...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Função para mostrar toast de notificação
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => toast.classList.add('show'), 100);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => document.body.removeChild(toast), 300);
+            }, 3000);
+        }
+
+        // Configurar formulários
+        document.querySelectorAll('.upload-form').forEach(form => {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const btn = this.querySelector('button[type="submit"]');
+                const loading = btn.querySelector('.loading');
+                const originalText = btn.textContent;
+                
+                // Estado de loading
+                btn.disabled = true;
+                loading.style.display = 'block';
+                btn.querySelector('.loading').nextSibling.textContent = ' Processando...';
+                
+                try {
+                    const formData = new FormData(this);
+                    const response = await fetch('/process', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.text();
+                    const resultsDiv = document.getElementById('results');
+                    
+                    if (response.ok) {
+                        resultsDiv.textContent = result;
+                        resultsDiv.scrollTop = resultsDiv.scrollHeight;
+                        showToast('Operação executada com sucesso!', 'success');
+                    } else {
+                        resultsDiv.textContent = `Erro: ${result}`;
+                        showToast('Erro ao executar operação', 'error');
+                    }
+                } catch (error) {
+                    console.error('Erro:', error);
+                    document.getElementById('results').textContent = `Erro de conexão: ${error.message}`;
+                    showToast('Erro de conexão', 'error');
+                } finally {
+                    // Remover estado de loading
+                    btn.disabled = false;
+                    loading.style.display = 'none';
+                    btn.querySelector('.loading').nextSibling.textContent = originalText.replace('Processando...', '').trim();
+                }
+            });
+        });
+
+        // Função para atualizar dados
+        async function updateAll() {
+            // Buscar logs
+            try {
+                const logsDiv = document.getElementById('logs');
+                const response = await fetch('/logs');
+                const text = await response.text();
+                
+                if (logsDiv.textContent !== text) {
+                    logsDiv.textContent = text || 'Nenhum log disponível';
+                    logsDiv.scrollTop = logsDiv.scrollHeight;
+                }
+            } catch (error) {
+                document.getElementById('logs').textContent = 'Erro ao carregar logs';
+            }
+            
+            // Buscar estatísticas
+            try {
+                const statsBody = document.getElementById('stats-body');
+                const response = await fetch('/stats');
+                const data = await response.json();
+                
+                let html = '';
+                const entries = Object.entries(data);
+                
+                if (entries.length === 0) {
+                    html = '<tr><td colspan="2" style="text-align: center; color: var(--gray-500);">Nenhuma operação executada ainda</td></tr>';
+                } else {
+                    entries.forEach(([operation, count]) => {
+                        html += `
+                            <tr>
+                                <td>${operation}</td>
+                                <td>
+                                    ${count}
+                                    <span class="badge">${count}</span>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                }
+                
+                statsBody.innerHTML = html;
+            } catch (error) {
+                document.getElementById('stats-body').innerHTML = 
+                    '<tr><td colspan="2" style="text-align: center; color: var(--error);">Erro ao carregar estatísticas</td></tr>';
+            }
+        }
+
+        // Atualizar dados periodicamente
+        setInterval(updateAll, 5000);
+        
+        // Carregar dados iniciais
+        document.addEventListener('DOMContentLoaded', () => {
+            updateAll();
+            console.log('Painel Vision-Serveless carregado com sucesso!');
+        });
+
+        // Adicionar validação de arquivos
+        document.querySelectorAll('input[type="file"]').forEach(input => {
+            input.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    const maxSize = 10 * 1024 * 1024; // 10MB
+                    if (file.size > maxSize) {
+                        showToast('Arquivo muito grande. Máximo: 10MB', 'error');
+                        this.value = '';
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
