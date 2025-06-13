@@ -14,6 +14,11 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     
+    # ADICIONADO: Bloco de permissões para permitir o login no Azure
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
       # 1. Pega o código do seu repositório
       - name: 'Checkout Github Action'
@@ -41,14 +46,13 @@ jobs:
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F558C0E4056849249AA4CE88EDC41690 }}
 
       # 5. Implanta APENAS a pasta 'frontend' para o App Service.
-      # O Azure então colocará o conteúdo de 'frontend' na raiz do servidor.
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'vision-az-linux'
           slot-name: 'Production'
-          package: 'frontend' # <--- ESTA É A MUDANÇA MAIS IMPORTANTE
+          package: 'frontend'
 
       # O passo de logout é opcional, mas uma boa prática
       - name: Logout from Azure
