@@ -1,20 +1,25 @@
-from flask import current_app, render_template, request, jsonify
+# app/routes.py
+
+from flask import Blueprint, current_app, render_template, request, jsonify
 from azure.storage.blob import BlobServiceClient
 from azure.data.tables import TableServiceClient
 from azure.core.exceptions import ResourceNotFoundError
 import uuid
 import logging
 
-from . import app
+# 1. Cria um Blueprint chamado 'main'
+# A linha "from . import app" foi removida daqui para evitar a importação circular.
+bp = Blueprint('main', __name__)
 
 INPUT_CONTAINER = "input-files"
 STATS_TABLE_NAME = "stats"
 
-@app.route('/')
+# 2. Usa o Blueprint para definir as rotas (usa @bp.route em vez de @app.route)
+@bp.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/upload', methods=['POST'])
+@bp.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files or not request.form.get('operation'):
         return jsonify({"error": "Requisição incompleta."}), 400
@@ -28,6 +33,7 @@ def upload_file():
 
     connection_string = current_app.config.get("STORAGE_CONNECTION_STRING")
     if not connection_string:
+        logging.error("ERRO CRÍTICO: A variável de ambiente STORAGE_CONNECTION_STRING não foi encontrada.")
         return jsonify({"error": "Configuração de armazenamento ausente."}), 500
 
     blob_service_client = BlobServiceClient.from_connection_string(connection_string)
@@ -43,10 +49,11 @@ def upload_file():
         logging.error(f"Erro no upload: {e}")
         return jsonify({"error": "Falha ao enviar arquivo."}), 500
 
-@app.route('/stats')
+@bp.route('/stats')
 def get_stats():
     connection_string = current_app.config.get("STORAGE_CONNECTION_STRING")
     if not connection_string:
+        logging.error("ERRO CRÍTICO: A variável de ambiente STORAGE_CONNECTION_STRING não foi encontrada.")
         return jsonify({"error": "Configuração de armazenamento ausente."}), 500
         
     try:
@@ -57,10 +64,11 @@ def get_stats():
         return jsonify(stats)
     except ResourceNotFoundError:
         return jsonify({}) # Tabela não existe ainda, retorna vazio
-    except Exception:
+    except Exception as e:
+        logging.error(f"Erro ao buscar estatísticas: {e}")
         return jsonify({"error": "Não foi possível buscar estatísticas."}), 500
 
-@app.route('/logs')
+@bp.route('/logs')
 def get_logs():
     # Em produção, os logs devem ser vistos no Application Insights.
     # Esta é uma simulação para manter a UI funcional.
