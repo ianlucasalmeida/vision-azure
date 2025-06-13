@@ -1,7 +1,3 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-# More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
-
 name: Build and deploy Python app to Azure Web App - vision-az-linux
 
 on:
@@ -11,50 +7,25 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
-    
-    # ADICIONADO: Bloco de permissões para permitir o login no Azure
     permissions:
       id-token: write
       contents: read
 
     steps:
-      # 1. Pega o código do seu repositório
-      - name: 'Checkout Github Action'
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Configura a versão correta do Python
-      - name: Set up Python version
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      # 3. Instala as dependências CORRETAS, que estão dentro da pasta frontend
-      - name: Install dependencies
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install -r frontend/requirements.txt
-      
-      # 4. Faz o login no Azure
-      - name: 'Login to Azure'
+      - name: Log in to Azure
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_5A49747CD89F4688882C8FF9592511B1 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_20782B1DE23448ACBECB0F8807D5B218 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F558C0E4056849249AA4CE88EDC41690 }}
 
-      # 5. Implanta APENAS a pasta 'frontend' para o App Service.
-      - name: 'Deploy to Azure Web App'
-        id: deploy-to-webapp
+      - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'vision-az-linux'
-          slot-name: 'Production'
-          package: 'frontend'
-
-      # O passo de logout é opcional, mas uma boa prática
-      - name: Logout from Azure
-        run: |
-          az logout
+          package: ./frontend
