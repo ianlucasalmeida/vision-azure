@@ -41,7 +41,7 @@ jobs:
     # Garante que a função só será implantada se o deploy do site for bem-sucedido
     needs: deploy-webapp
     
-    # CORREÇÃO: Adicionado o bloco de permissões que faltava para este trabalho.
+    # CORREÇÃO: Bloco de permissões adicionado para este trabalho.
     permissions:
       id-token: write
       contents: read
