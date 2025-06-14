@@ -1,4 +1,8 @@
-name: Build and deploy Python app to Azure Web App - vision-az-linux
+# Arquivo: .github/workflows/main_vision-az-linux.yml
+# Este é o fluxo de trabalho completo para implantar tanto o site (App Service)
+# quanto o processamento em segundo plano (Function App).
+
+name: Build and deploy Web App and Function App to Azure
 
 on:
   push:
@@ -7,7 +11,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  # TRABALHO 1: Implantar o site (Frontend)
+  deploy-webapp:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -29,3 +34,40 @@ jobs:
         with:
           app-name: 'vision-az-linux'
           package: ./frontend
+
+  # TRABALHO 2: Implantar a função de processamento (Backend)
+  deploy-functionapp:
+    runs-on: ubuntu-latest
+    # Garante que a função só será implantada se o deploy do site for bem-sucedido
+    needs: deploy-webapp
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python version
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies for function app
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r function_app/requirements.txt
+
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          # Usa os mesmos segredos que já estão configurados
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_5A49747CD89F4688882C8FF9592511B1 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_20782B1DE23448ACBECB0F8807D5B218 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F558C0E4056849249AA4CE88EDC41690 }}
+
+      - name: Deploy to Azure Function App
+        uses: Azure/functions-action@v1
+        with:
+          # IMPORTANTE: Use aqui o nome exato do Aplicativo de Funções que você acabou de criar
+          app-name: 'vision-az-functions-ian' 
+          # Diz ao deploy para pegar apenas a pasta da sua função
+          package: ./function_app
