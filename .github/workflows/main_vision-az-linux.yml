@@ -1,5 +1,5 @@
 # Arquivo: .github/workflows/main_vision-az-linux.yml
-# Versão final corrigida para funcionar com o método Run-From-Package.
+# Versão final e simplificada para confiar no sistema de build do Azure.
 
 name: Build and deploy Web App and Function App to Azure
 
@@ -28,17 +28,13 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_20782B1DE23448ACBECB0F8807D5B218 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F558C0E4056849249AA4CE88EDC41690 }}
 
-      - name: Zip artifact for deployment
-        run: |
-          cd frontend
-          zip -r ../frontend-release.zip .
-          cd ..
-
+      # PASSO SIMPLIFICADO: Aponta diretamente para a pasta. O Azure irá
+      # detetar o requirements.txt e instalar as dependências.
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'vision-az-linux'
-          package: frontend-release.zip
+          package: ./frontend
 
   # TRABALHO 2: Implantar a função de processamento (Backend)
   deploy-functionapp:
@@ -52,14 +48,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python version
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      # O passo de instalação manual de dependências foi REMOVIDO daqui.
-      # O sistema de build do Azure fará isso automaticamente.
-
       - name: Log in to Azure
         uses: azure/login@v2
         with:
@@ -67,6 +55,8 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_20782B1DE23448ACBECB0F8807D5B218 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F558C0E4056849249AA4CE88EDC41690 }}
 
+      # PASSO SIMPLIFICADO: Aponta diretamente para a pasta. O Azure irá
+      # detetar o requirements.txt e instalar as dependências.
       - name: Deploy to Azure Function App
         uses: Azure/functions-action@v1
         with:
