@@ -346,7 +346,7 @@
         <div class="status-bar">
             <div class="status-indicator">
                 <div class="status-dot"></div>
-                <span>Sistema Online - LocalStack Conectado</span>
+                <span>Sistema Online</span>
             </div>
         </div>
 
@@ -373,7 +373,7 @@
                         <svg class="loading" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M12 4V2A10 10 0 0 0 2 12h2a8 8 0 0 1 8-8Z"/>
                         </svg>
-                        Executar Conversão
+                        <span>Executar Conversão</span>
                     </button>
                 </form>
 
@@ -400,7 +400,7 @@
                         <svg class="loading" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M12 4V2A10 10 0 0 0 2 12h2a8 8 0 0 1 8-8Z"/>
                         </svg>
-                        Converter Formato
+                        <span>Converter Formato</span>
                     </button>
                 </form>
             </div>
@@ -429,7 +429,7 @@
                         <svg class="loading" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M12 4V2A10 10 0 0 0 2 12h2a8 8 0 0 1 8-8Z"/>
                         </svg>
-                        Extrair Frame
+                        <span>Extrair Frame</span>
                     </button>
                 </form>
             </div>
@@ -469,7 +469,6 @@
     </div>
 
     <script>
-        // Função para mostrar toast de notificação
         function showToast(message, type = 'success') {
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
@@ -483,85 +482,74 @@
             }, 3000);
         }
 
-        // Configurar formulários
         document.querySelectorAll('.upload-form').forEach(form => {
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
                 const btn = this.querySelector('button[type="submit"]');
-                const loading = btn.querySelector('.loading');
-                const originalText = btn.textContent;
+                const loadingIcon = btn.querySelector('.loading');
+                const btnText = btn.querySelector('span');
+                const originalText = btnText.textContent;
                 
-                // Estado de loading
                 btn.disabled = true;
-                loading.style.display = 'block';
-                btn.querySelector('.loading').nextSibling.textContent = ' Processando...';
+                loadingIcon.style.display = 'inline-block';
+                btnText.textContent = 'Enviando...';
                 
+                const resultsDiv = document.getElementById('results');
+                resultsDiv.textContent = 'Enviando ficheiro...';
+
                 try {
                     const formData = new FormData(this);
-                    const response = await fetch('/process', {
+                    
+                    // ***** A CORREÇÃO ESTÁ AQUI *****
+                    // O endpoint foi alterado de '/process' para '/upload'.
+                    // Agora, o formulário envia o ficheiro para a rota correta do Flask,
+                    // que apenas o salva no armazenamento e retorna imediatamente.
+                    const response = await fetch('/upload', {
                         method: 'POST',
                         body: formData
                     });
                     
-                    const result = await response.text();
-                    const resultsDiv = document.getElementById('results');
+                    const result = await response.json(); 
                     
                     if (response.ok) {
-                        resultsDiv.textContent = result;
-                        resultsDiv.scrollTop = resultsDiv.scrollHeight;
-                        showToast('Operação executada com sucesso!', 'success');
+                        resultsDiv.textContent = `Sucesso: ${result.success}\nO processamento está a ocorrer em segundo plano.`;
+                        showToast(result.success, 'success');
                     } else {
-                        resultsDiv.textContent = `Erro: ${result}`;
-                        showToast('Erro ao executar operação', 'error');
+                        resultsDiv.textContent = `Erro: ${result.error}`;
+                        showToast(result.error, 'error');
                     }
                 } catch (error) {
                     console.error('Erro:', error);
-                    document.getElementById('results').textContent = `Erro de conexão: ${error.message}`;
-                    showToast('Erro de conexão', 'error');
+                    resultsDiv.textContent = `Erro de conexão: ${error.message}`;
+                    showToast('Erro de conexão com o servidor', 'error');
                 } finally {
-                    // Remover estado de loading
                     btn.disabled = false;
-                    loading.style.display = 'none';
-                    btn.querySelector('.loading').nextSibling.textContent = originalText.replace('Processando...', '').trim();
+                    loadingIcon.style.display = 'none';
+                    btnText.textContent = originalText;
                 }
             });
         });
 
-        // Função para atualizar dados
-        async function updateAll() {
-            // Buscar logs
-            try {
-                const logsDiv = document.getElementById('logs');
-                const response = await fetch('/logs');
-                const text = await response.text();
-                
-                if (logsDiv.textContent !== text) {
-                    logsDiv.textContent = text || 'Nenhum log disponível';
-                    logsDiv.scrollTop = logsDiv.scrollHeight;
-                }
-            } catch (error) {
-                document.getElementById('logs').textContent = 'Erro ao carregar logs';
-            }
-            
-            // Buscar estatísticas
+        async function updateStats() {
             try {
                 const statsBody = document.getElementById('stats-body');
                 const response = await fetch('/stats');
+                if (!response.ok) throw new Error('Falha ao buscar estatísticas');
+                
                 const data = await response.json();
                 
                 let html = '';
                 const entries = Object.entries(data);
                 
                 if (entries.length === 0) {
-                    html = '<tr><td colspan="2" style="text-align: center; color: var(--gray-500);">Nenhuma operação executada ainda</td></tr>';
+                    html = '<tr><td colspan="2" style="text-align: center; color: var(--gray-600);">Nenhuma operação executada ainda.</td></tr>';
                 } else {
                     entries.forEach(([operation, count]) => {
                         html += `
                             <tr>
                                 <td>${operation}</td>
                                 <td>
-                                    ${count}
                                     <span class="badge">${count}</span>
                                 </td>
                             </tr>
@@ -571,33 +559,22 @@
                 
                 statsBody.innerHTML = html;
             } catch (error) {
+                console.error(error);
                 document.getElementById('stats-body').innerHTML = 
-                    '<tr><td colspan="2" style="text-align: center; color: var(--error);">Erro ao carregar estatísticas</td></tr>';
+                    '<tr><td colspan="2" style="text-align: center; color: var(--error);">Erro ao carregar estatísticas.</td></tr>';
             }
         }
-
-        // Atualizar dados periodicamente
-        setInterval(updateAll, 5000);
         
-        // Carregar dados iniciais
+        // A função de logs foi removida porque o backend Flask não tem mais acesso
+        // direto aos logs de processamento, que agora estão na Azure Function.
+        // O terminal principal mostrará o estado do upload.
+
         document.addEventListener('DOMContentLoaded', () => {
-            updateAll();
+            updateStats();
+            setInterval(updateStats, 10000); // Atualiza estatísticas a cada 10 segundos
             console.log('Painel Vision-Serveless carregado com sucesso!');
         });
 
-        // Adicionar validação de arquivos
-        document.querySelectorAll('input[type="file"]').forEach(input => {
-            input.addEventListener('change', function() {
-                const file = this.files[0];
-                if (file) {
-                    const maxSize = 10 * 1024 * 1024; // 10MB
-                    if (file.size > maxSize) {
-                        showToast('Arquivo muito grande. Máximo: 10MB', 'error');
-                        this.value = '';
-                    }
-                }
-            });
-        });
     </script>
 </body>
 </html>
