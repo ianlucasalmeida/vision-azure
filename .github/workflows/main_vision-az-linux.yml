@@ -1,6 +1,5 @@
 # Arquivo: .github/workflows/main_vision-az-linux.yml
-# Este é o fluxo de trabalho completo para implantar tanto o site (App Service)
-# quanto o processamento em segundo plano (Function App).
+# Versão final com a criação explícita do pacote de deploy.
 
 name: Build and deploy Web App and Function App to Azure
 
@@ -29,23 +28,28 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_20782B1DE23448ACBECB0F8807D5B218 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F558C0E4056849249AA4CE88EDC41690 }}
 
+      # NOVO PASSO: Cria um arquivo .zip com o conteúdo da pasta frontend
+      - name: Zip artifact for deployment
+        run: |
+          cd frontend
+          zip -r ../frontend-release.zip .
+          cd ..
+
+      # PASSO ALTERADO: Aponta para o arquivo .zip que acabamos de criar
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'vision-az-linux'
-          package: ./frontend
+          package: frontend-release.zip
 
   # TRABALHO 2: Implantar a função de processamento (Backend)
   deploy-functionapp:
     runs-on: ubuntu-latest
-    # Garante que a função só será implantada se o deploy do site for bem-sucedido
     needs: deploy-webapp
-    
-    # CORREÇÃO: Bloco de permissões adicionado para este trabalho.
     permissions:
       id-token: write
       contents: read
-
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -64,7 +68,6 @@ jobs:
       - name: Log in to Azure
         uses: azure/login@v2
         with:
-          # Usa os mesmos segredos que já estão configurados
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_5A49747CD89F4688882C8FF9592511B1 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_20782B1DE23448ACBECB0F8807D5B218 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F558C0E4056849249AA4CE88EDC41690 }}
@@ -72,7 +75,5 @@ jobs:
       - name: Deploy to Azure Function App
         uses: Azure/functions-action@v1
         with:
-          # IMPORTANTE: Use aqui o nome exato do Aplicativo de Funções que você acabou de criar
-          app-name: 'vision-az-functions-ian' 
-          # Diz ao deploy para pegar apenas a pasta da sua função
+          app-name: 'vision-az-functions-ian'
           package: ./function_app
