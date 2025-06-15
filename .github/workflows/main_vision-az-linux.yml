@@ -1,5 +1,5 @@
 # Arquivo: .github/workflows/main_vision-az-linux.yml
-# Versão final com a criação explícita do pacote de deploy.
+# Versão final corrigida para funcionar com o método Run-From-Package.
 
 name: Build and deploy Web App and Function App to Azure
 
@@ -28,14 +28,12 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_20782B1DE23448ACBECB0F8807D5B218 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F558C0E4056849249AA4CE88EDC41690 }}
 
-      # NOVO PASSO: Cria um arquivo .zip com o conteúdo da pasta frontend
       - name: Zip artifact for deployment
         run: |
           cd frontend
           zip -r ../frontend-release.zip .
           cd ..
 
-      # PASSO ALTERADO: Aponta para o arquivo .zip que acabamos de criar
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
@@ -59,11 +57,8 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies for function app
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install -r function_app/requirements.txt
+      # O passo de instalação manual de dependências foi REMOVIDO daqui.
+      # O sistema de build do Azure fará isso automaticamente.
 
       - name: Log in to Azure
         uses: azure/login@v2
