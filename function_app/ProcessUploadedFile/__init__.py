@@ -6,7 +6,7 @@ from azure.storage.blob import BlobServiceClient
 from azure.data.tables import TableServiceClient
 
 # Importa todos os seus módulos de processamento
-from .processors import image_processor, video_processor, pdf_processor, slideshow_creator
+from ..processors import image_processor, video_processor, pdf_processor, slideshow_creator
 
 JOBS_TABLE = "jobs"
 INPUT_CONTAINER = "input-files"
