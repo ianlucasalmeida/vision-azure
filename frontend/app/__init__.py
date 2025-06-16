@@ -1,31 +1,31 @@
-# app/__init__.py
+# ficheiro: frontend/app/__init__.py
 
-from flask import Flask
 import os
+import logging
+from flask import Flask
 
 def create_app():
+    # Configura o logging básico para que as mensagens apareçam nos logs do Azure
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
     app = Flask(__name__)
     
-    # Lógica para carregar a connection string
-    if os.environ.get("WEBSITE_HOSTNAME"):
-        # Ambiente de produção no Azure App Service
-        # A string de conexão deve ser configurada como uma variável de ambiente no App Service
-        app.config["STORAGE_CONNECTION_STRING"] = os.environ.get("AZURE_STORAGE_CONNECTION_STRING")
-    else:
-        # Ambiente de desenvolvimento local, usando um arquivo .env
-        try:
-            from dotenv import load_dotenv
-            # O caminho aponta para a pasta raiz (frontend), um nível acima da pasta 'app'
-            load_dotenv(dotenv_path='../.env') 
-            app.config["STORAGE_CONNECTION_STRING"] = os.environ.get("AZURE_STORAGE_CONNECTION_STRING")
-        except ImportError:
-            # dotenv não é uma dependência de produção, então pode não estar instalada.
-            # No ambiente de produção, esperamos que a variável de ambiente já exista.
-            pass
+    logging.info("A iniciar a criação da aplicação Flask.")
 
-    # Importa as rotas (do arquivo routes.py) e registra o Blueprint na aplicação.
-    # Esta é a linha crucial que conecta suas URLs ao Flask.
+    # Lógica para carregar a connection string
+    storage_connection_string = os.environ.get("AZURE_STORAGE_CONNECTION_STRING")
+
+    if storage_connection_string:
+        app.config["STORAGE_CONNECTION_STRING"] = storage_connection_string
+        logging.info("STORAGE_CONNECTION_STRING carregada com sucesso a partir das variáveis de ambiente.")
+    else:
+        logging.error("ERRO CRÍTICO: A variável de ambiente AZURE_STORAGE_CONNECTION_STRING não foi encontrada!")
+        # Mesmo com o erro, continuamos para que a aplicação não trave, mas as operações falharão.
+        app.config["STORAGE_CONNECTION_STRING"] = None
+
+    # Regista o blueprint das rotas
     from . import routes
     app.register_blueprint(routes.bp)
+    logging.info("Blueprint de rotas registado.")
 
     return app
