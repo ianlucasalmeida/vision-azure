@@ -1,98 +1,79 @@
-import azure.functions as func
+# function_app/function_app.py
 import logging
+import azure.functions as func
 import os
-import tempfile
 from azure.storage.blob import BlobServiceClient
-from azure.data.tables import TableClient
+from azure.data.tables import TableServiceClient
 
-# Importa seus processadores
-from processors import image_processor, video_processor
+# Importa todos os seus módulos de processamento
+from .processors import image_processor, video_processor, pdf_processor, slideshow_creator
 
-# Define o aplicativo de função
-app = func.FunctionApp()
-
-# Define as variáveis de conexão e nomes de recursos
-# A connection string principal vem da configuração "AzureWebJobsStorage"
-CONNECTION_STRING = os.environ["AzureWebJobsStorage"]
+JOBS_TABLE = "jobs"
+INPUT_CONTAINER = "input-files"
 OUTPUT_CONTAINER = "output-files"
-STATS_TABLE_NAME = "stats"
-STATS_PARTITION_KEY = "stats"
 
-@app.blob_trigger(arg_name="inputblob",
-                  path="input-files/{name}",
-                  connection="AzureWebJobsStorage")
-def vision_processor(inputblob: func.InputStream):
-    logging.info(f"Gatilho de Blob acionado para o arquivo: {inputblob.name}")
+def main(myblob: func.InputStream):
+    # --- Bloco de Inicialização ---
+    connection_string = os.environ.get("AZURE_STORAGE_CONNECTION_STRING")
+    if not connection_string:
+        logging.error("Variável de ambiente AZURE_STORAGE_CONNECTION_STRING não encontrada.")
+        # Em caso de falha de configuração, a função termina aqui para evitar mais erros.
+        return
+
+    blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+    table_client = TableServiceClient.from_connection_string(connection_string).get_table_client(JOBS_TABLE)
+    
+    blob_filename = os.path.basename(myblob.name)
+    job_id = os.path.splitext(blob_filename)[0]
+    logging.info(f"Processando job_id: {job_id}, ficheiro: {blob_filename}")
+    
+    job_entity = {"PartitionKey": "jobs", "RowKey": job_id}
 
     try:
-        # 1. Obtém metadados do blob de entrada
-        blob_service_client = BlobServiceClient.from_connection_string(CONNECTION_STRING)
-        blob_client = blob_service_client.get_blob_client(container="input-files", blob=inputblob.name)
-        metadata = blob_client.get_blob_properties().metadata
+        # 1. Atualiza o estado para "processando" na tabela de jobs
+        job_entity["status"] = "processing"
+        table_client.upsert_entity(entity=job_entity)
+
+        operation = myblob.metadata.get('operation')
+        params = myblob.metadata.get('params')
+        result_data = None
+
+        # --- Lógica de Roteamento para o Processador Correto ---
+        logging.info(f"Roteando para a operação: {operation}")
         
-        operation = metadata.get("operation", "unknown")
-        params = metadata.get("params", "")
+        if operation.startswith('img_'):
+            result_data = image_processor.handle(operation, myblob, blob_service_client, blob_filename, OUTPUT_CONTAINER, params)
+        elif operation.startswith('video_'):
+            result_data = video_processor.handle(operation, myblob, blob_service_client, blob_filename, OUTPUT_CONTAINER, params)
+        elif operation.startswith('pdf_'):
+            result_data = pdf_processor.handle(operation, myblob, blob_service_client, blob_filename, OUTPUT_CONTAINER, params)
+        elif operation == 'create_slideshow':
+            # Chama o novo processador de slideshow
+            result_data = slideshow_creator.handle(operation, myblob, blob_service_client, blob_filename, OUTPUT_CONTAINER, params)
+        else:
+            raise ValueError(f"Operação desconhecida recebida: {operation}")
 
-        # 2. Processa o arquivo
-        with tempfile.TemporaryDirectory() as temp_dir:
-            file_name = os.path.basename(inputblob.name)
-            input_path = os.path.join(temp_dir, file_name)
+        # 2. Verifica se o processamento retornou um resultado válido
+        if not result_data or 'outputUrl' not in result_data:
+            raise Exception("O processamento não gerou um ficheiro de saída ou não retornou uma URL.")
+
+        # 3. Se teve sucesso, atualiza o estado com o resultado
+        job_entity["status"] = "completed"
+        job_entity["outputUrl"] = result_data.get('outputUrl')
+        if result_data.get('shortUrl'): # Adiciona a URL curta se existir
+            job_entity["shortUrl"] = result_data.get('shortUrl')
             
-            with open(input_path, "wb") as f:
-                f.write(inputblob.read())
+        table_client.upsert_entity(entity=job_entity)
+        logging.info(f"Job {job_id} concluído com sucesso.")
 
-            logging.info(f"Arquivo baixado. Operação: '{operation}'")
-            output_path = None
-
-            if operation == 'img_to_bw':
-                output_path = image_processor.convert_to_bw(input_path)
-            elif operation == 'img_change_format':
-                output_path = image_processor.change_format(input_path, params)
-            elif operation == 'extract_frame':
-                second = int(params) if params and params.isdigit() else None
-                output_path = video_processor.extract_frame(input_path, second)
-            else:
-                logging.error(f"Operação desconhecida: {operation}")
-                return
-
-            # 3. Faz upload do resultado
-            if output_path and os.path.exists(output_path):
-                output_blob_name = f"processed-{os.path.basename(output_path)}"
-                output_blob_client = blob_service_client.get_blob_client(container=OUTPUT_CONTAINER, blob=output_blob_name)
-                with open(output_path, "rb") as data:
-                    output_blob_client.upload_blob(data, overwrite=True)
-                logging.info(f"Resultado salvo em {OUTPUT_CONTAINER}/{output_blob_name}")
-            else:
-                logging.warning("Nenhum arquivo de saída foi gerado.")
-
-        # 4. Atualiza as estatísticas na Azure Table Storage
-        update_stats(operation)
+        # 4. Exclui o ficheiro de entrada após o sucesso
+        input_blob_client = blob_service_client.get_blob_client(container=INPUT_CONTAINER, blob=blob_filename)
+        input_blob_client.delete_blob()
+        logging.info(f"Ficheiro de entrada {blob_filename} excluído com sucesso.")
 
     except Exception as e:
-        logging.error(f"Erro fatal no processamento da função: {e}")
-
-
-def update_stats(operation_name):
-    """Função auxiliar para ler, incrementar e salvar estatísticas."""
-    try:
-        table_client = TableClient.from_connection_string(CONNECTION_STRING, table_name=STATS_TABLE_NAME)
-        
-        try:
-            # Tenta ler a entidade existente
-            entity = table_client.get_entity(partition_key=STATS_PARTITION_KEY, row_key=operation_name)
-            current_count = int(entity["count"])
-        except Exception:
-            # Se não existe, o contador começa em 0
-            current_count = 0
-            
-        # Cria ou atualiza a entidade com o novo valor
-        new_entity = {
-            "PartitionKey": STATS_PARTITION_KEY,
-            "RowKey": operation_name,
-            "count": current_count + 1
-        }
-        table_client.upsert_entity(entity=new_entity)
-        logging.info(f"Estatística para '{operation_name}' atualizada para {new_entity['count']}.")
-
-    except Exception as e:
-        logging.error(f"Não foi possível atualizar as estatísticas: {e}")
+        # 5. Em caso de erro, regista a falha de forma detalhada
+        logging.error(f"Falha no job {job_id}: {e}", exc_info=True)
+        job_entity["status"] = "failed"
+        job_entity["errorMessage"] = str(e)
+        table_client.upsert_entity(entity=job_entity)

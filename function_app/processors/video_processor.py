@@ -1,27 +1,89 @@
-# /vision-azure/function_app/processors/video_processor.py
-import moviepy.editor as mp
+# function_app/processors/video_processor.py
+import logging
+from moviepy.editor import VideoFileClip
 import os
-import random
 import tempfile
 
-def extract_frame(input_path, second=None):
-    """
-    Extrai um único frame de um vídeo em um segundo específico ou aleatório.
-    :param input_path: Caminho do arquivo de vídeo original.
-    :param second: O segundo do qual extrair o frame. Se None, um tempo aleatório é escolhido.
-    :return: Caminho da imagem do frame extraído.
-    """
-    base_name = os.path.basename(input_path).rsplit('.', 1)[0]
-    output_path = os.path.join(tempfile.gettempdir(), f"{base_name}_frame.jpg")
+# Importamos a função utilitária do outro módulo para evitar duplicação
+from .image_processor import shorten_url 
 
-    with mp.VideoFileClip(input_path) as video:
-        duration = video.duration
-        target_time = second if second is not None else random.uniform(0, duration)
+OUTPUT_CONTAINER = "output-files"
+
+def handle(operation, blob_stream, blob_service_client, original_filename, output_container, params):
+    """
+    Função "gestora" que direciona para o processamento de vídeo correto.
+    """
+    if operation == 'video_to_mp4':
+        return convert_to_mp4(blob_stream, blob_service_client, original_filename, output_container)
+    elif operation == 'generate_thumbnail':
+        return generate_thumbnail(blob_stream, blob_service_client, original_filename, output_container)
+    else:
+        raise ValueError(f"Operação de vídeo desconhecida: {operation}")
+
+def convert_to_mp4(blob_stream, blob_service_client, original_filename, output_container):
+    """Converte um vídeo para o formato MP4."""
+    logging.info(f"Convertendo '{original_filename}' para MP4.")
+    
+    # moviepy precisa de trabalhar com ficheiros no disco, não diretamente com streams.
+    # Usamos ficheiros temporários que são excluídos no final.
+    with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(original_filename)[1]) as temp_input_file:
+        temp_input_file.write(blob_stream.read())
+        input_path = temp_input_file.name
+
+    output_path = tempfile.mktemp(suffix=".mp4")
+
+    try:
+        clip = VideoFileClip(input_path)
+        # Converte o vídeo, especificando codecs compatíveis com a web
+        clip.write_videofile(output_path, codec='libx264', audio_codec='aac')
         
-        # Garante que o tempo alvo não ultrapasse a duração do vídeo
-        if target_time > duration:
-            target_time = duration
+        base_name = os.path.splitext(original_filename)[0]
+        output_blob_name = f"{base_name}_converted.mp4"
+
+        # Faz o upload do resultado
+        output_blob_client = blob_service_client.get_blob_client(container=output_container, blob=output_blob_name)
+        with open(output_path, "rb") as data:
+            output_blob_client.upload_blob(data, overwrite=True)
             
-        video.save_frame(output_path, t=target_time)
+        long_url = output_blob_client.url
+        short_url = shorten_url(long_url)
+        return {"outputUrl": long_url, "shortUrl": short_url}
+
+    finally:
+        # Garante que os ficheiros temporários são sempre limpos
+        if os.path.exists(input_path):
+            os.remove(input_path)
+        if os.path.exists(output_path):
+            os.remove(output_path)
+
+def generate_thumbnail(blob_stream, blob_service_client, original_filename, output_container):
+    """Extrai um único frame (thumbnail) de um vídeo."""
+    logging.info(f"Gerando thumbnail para '{original_filename}'.")
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(original_filename)[1]) as temp_input_file:
+        temp_input_file.write(blob_stream.read())
+        input_path = temp_input_file.name
+
+    output_path = tempfile.mktemp(suffix=".jpg")
+    
+    try:
+        clip = VideoFileClip(input_path)
+        # Salva o frame do segundo 2 do vídeo
+        clip.save_frame(output_path, t=2.00)
         
-    return output_path
+        base_name = os.path.splitext(original_filename)[0]
+        output_blob_name = f"thumb_{base_name}.jpg"
+
+        output_blob_client = blob_service_client.get_blob_client(container=output_container, blob=output_blob_name)
+        with open(output_path, "rb") as data:
+            output_blob_client.upload_blob(data, overwrite=True)
+
+        long_url = output_blob_client.url
+        short_url = shorten_url(long_url)
+        return {"outputUrl": long_url, "shortUrl": short_url}
+
+    finally:
+        if os.path.exists(input_path):
+            os.remove(input_path)
+        if os.path.exists(output_path):
+            os.remove(output_path)
