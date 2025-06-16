@@ -1,7 +1,0 @@
-{
-  "IsEncrypted": false,
-  "Values": {
-    "AzureWebJobsStorage": "COLE_SUA_CONNECTION_STRING_AQUI",
-    "FUNCTIONS_WORKER_RUNTIME": "python"
-  }
-}

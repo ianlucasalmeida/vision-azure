@@ -1,0 +1,5 @@
+azure-functions
+azure-storage-blob
+azure-cognitiveservices-vision-computervision
+msrest
+Pillow  # Se necessário para processamento de imagens

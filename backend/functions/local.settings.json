@@ -1,0 +1,10 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "AzureWebJobsStorage": "<SUA_CONNECTION_STRING>",
+    "VISION_ENDPOINT": "https://<SEU_SERVICO>.cognitiveservices.azure.com/",
+    "VISION_KEY": "<SUA_CHAVE>",
+    "PYTHONPATH": "${workspaceFolder}/backend/shared"
+  }
+}
