@@ -6,65 +6,546 @@
     <title>Vision - Plataforma de Processamento de Mídia</title>
     <style>
         :root {
-            --primary: #6366f1; --primary-dark: #4f46e5; --secondary: #8b5cf6;
-            --success: #10b981; --error: #ef4444; --gray-50: #f9fafb;
-            --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-700: #374151;
-            --gray-900: #111827;
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --dark: #0f172a;
+            --dark-lighter: #1e293b;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
         }
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background-color: var(--gray-100); color: var(--gray-700); margin: 0; line-height: 1.6; }
-        .container { max-width: 1200px; margin: 2rem auto; padding: 0 2rem; }
-        .header { text-align: center; margin-bottom: 4rem; }
-        .header h1 { font-size: 3rem; font-weight: 800; background: linear-gradient(135deg, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .header p { font-size: 1.125rem; color: #4b5563; margin-top: 0.5rem; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
-        .tool-card { background: white; border-radius: 16px; padding: 2rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid var(--gray-200); cursor: pointer; transition: all 0.3s ease; text-align: center; display: flex; flex-direction: column; }
-        .tool-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
-        .tool-card .icon { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; border-radius: 50%; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem auto; flex-shrink: 0; }
-        .tool-card .icon svg { width: 32px; height: 32px; }
-        .tool-card h2 { font-size: 1.5rem; color: var(--gray-900); margin-bottom: 0.5rem; }
-        .tool-card p { font-size: 1rem; color: #4b5563; flex-grow: 1; }
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(17, 24, 39, 0.6); backdrop-filter: blur(5px); align-items: center; justify-content: center; }
-        .modal-content { background-color: #fefefe; margin: auto; padding: 2rem; border: 1px solid var(--gray-200); width: 90%; max-width: 500px; border-radius: 16px; position: relative; animation: slide-down 0.3s ease-out; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
-        .close-btn { color: #aaa; position: absolute; top: 1rem; right: 1.5rem; font-size: 28px; font-weight: bold; cursor: pointer; }
-        .modal h2 { margin-top: 0; color: var(--gray-900); }
-        label { display: block; font-weight: 500; margin-bottom: 0.5rem; }
-        input[type="file"], input[type="number"], select { width: 100%; padding: 0.75rem; margin-bottom: 1.5rem; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 1rem; }
-        .btn { width: 100%; padding: 0.8rem; border: none; border-radius: 8px; color: white; background: var(--primary); font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
-        .btn:hover { background: var(--primary-dark); }
-        .btn:disabled { background-color: #9ca3af; cursor: not-allowed; }
-        .terminal { margin-top: 1.5rem; background: var(--gray-900); color: #e5e7eb; border-radius: 8px; padding: 1rem; font-family: 'SF Mono', 'Consolas', monospace; font-size: 0.9rem; height: 150px; overflow-y: auto; white-space: pre-wrap; border: 1px solid #374151; }
-        .download-link { color: var(--success); font-weight: bold; text-decoration: none; border-bottom: 2px solid var(--success); }
-        @keyframes slide-down { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--dark) 0%, var(--dark-lighter) 100%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 80%, rgba(6, 182, 212, 0.1) 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(-50px, -50px) rotate(0deg); }
+            33% { transform: translate(30px, -30px) rotate(120deg); }
+            66% { transform: translate(-20px, 20px) rotate(240deg); }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 4rem;
+            padding: 2rem 0;
+        }
+
+        .header h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 900;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradient-shift 3s ease-in-out infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes gradient-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .header p {
+            font-size: 1.25rem;
+            color: var(--gray-400);
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        /* Tool Cards */
+        .tool-card {
+            background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 24px;
+            padding: 2.5rem;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+            transition: left 0.6s;
+        }
+
+        .tool-card:hover::before {
+            left: 100%;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            border-color: rgba(99, 102, 241, 0.3);
+            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.1);
+        }
+
+        .tool-card .icon {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 20px;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem auto;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+        }
+
+        .tool-card .icon::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
+            border-radius: 22px;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tool-card:hover .icon::after {
+            opacity: 1;
+        }
+
+        .tool-card .icon svg {
+            width: 40px;
+            height: 40px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+
+        .tool-card h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: white;
+        }
+
+        .tool-card p {
+            color: var(--gray-400);
+            line-height: 1.6;
+            font-size: 1rem;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: linear-gradient(145deg, var(--dark-lighter), var(--dark));
+            border: 1px solid rgba(255,255,255,0.1);
+            width: 90%;
+            max-width: 500px;
+            border-radius: 24px;
+            position: relative;
+            animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            padding: 2rem 2rem 1rem 2rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1.5rem;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: var(--gray-400);
+            font-size: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .close-btn:hover {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        .modal h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Form Elements */
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--gray-300);
+            font-size: 0.9rem;
+        }
+
+        input[type="file"], 
+        input[type="number"], 
+        select {
+            width: 100%;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        input[type="file"]:focus,
+        input[type="number"]:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        select option {
+            background: var(--dark);
+            color: white;
+        }
+
+        /* Button */
+        .btn {
+            width: 100%;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.6s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn:disabled {
+            background: var(--gray-600);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn:disabled::before {
+            display: none;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin-top: 1.5rem;
+            display: none;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--gray-300);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Status Messages */
+        .status-message {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .status-message.success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .status-message.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: var(--error);
+        }
+
+        .status-message.info {
+            background: rgba(6, 182, 212, 0.1);
+            border: 1px solid rgba(6, 182, 212, 0.2);
+            color: var(--accent);
+        }
+
+        /* Download Link */
+        .download-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--success);
+            text-decoration: none;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 8px;
+            transition: all 0.2s;
+            margin-top: 1rem;
+        }
+
+        .download-link:hover {
+            background: rgba(16, 185, 129, 0.2);
+            transform: translateY(-1px);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            
+            .tool-card {
+                padding: 2rem;
+            }
+            
+            .modal-content {
+                width: 95%;
+                margin: 1rem;
+            }
+            
+            .modal-header,
+            .modal-body {
+                padding: 1.5rem;
+            }
+        }
+
+        /* Loading Animation */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
+    <div class="bg-animation"></div>
+    
     <div class="container">
         <header class="header">
-            <h1>Plataforma Vision</h1>
-            <p>A sua caixa de ferramentas para processamento de mídia na nuvem.</p>
+            <h1>Vision</h1>
+            <p>Transforme seus arquivos com tecnologia de ponta. Processamento rápido, seguro e profissional.</p>
         </header>
 
         <main>
             <div class="grid">
                 <div class="tool-card" data-modal="image-modal">
-                    <div class="icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M21.92,12.38A1,1,0,0,0,21,12H19.41A8,8,0,0,0,12,4.59V3a1,1,0,0,0-2,0V4.59A8,8,0,0,0,4.59,12H3a1,1,0,0,0,0,2H4.59A8,8,0,0,0,12,19.41V21a1,1,0,0,0,2,0V19.41A8,8,0,0,0,19.41,14H21a1,1,0,0,0,.92-1.62ZM12,18a6,6,0,1,1,6-6A6,6,0,0,1,12,18Z"/></svg></div>
-                    <h2>Ferramentas de Imagem</h2>
-                    <p>Converta formatos e aplique filtros como Preto & Branco ou Sépia.</p>
+                    <div class="icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M21.92,12.38A1,1,0,0,0,21,12H19.41A8,8,0,0,0,12,4.59V3a1,1,0,0,0-2,0V4.59A8,8,0,0,0,4.59,12H3a1,1,0,0,0,0,2H4.59A8,8,0,0,0,12,19.41V21a1,1,0,0,0,2,0V19.41A8,8,0,0,0,19.41,14H21a1,1,0,0,0,.92-1.62ZM12,18a6,6,0,1,1,6-6A6,6,0,0,1,12,18Z"/>
+                        </svg>
+                    </div>
+                    <h2>Processamento de Imagem</h2>
+                    <p>Aplique filtros profissionais como Preto & Branco e Sépia com qualidade premium.</p>
                 </div>
+
                 <div class="tool-card" data-modal="video-modal">
-                    <div class="icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20.5,15.6V8.4a1,1,0,0,0-1.55-.83L15,9.85V6A2,2,0,0,0,13,4H4A2,2,0,0,0,2,6v12a2,2,0,0,0,2,2h9a2,2,0,0,0,2-2V14.15l3.95,2.08A1,1,0,0,0,20.5,15.6Z"/></svg></div>
-                    <h2>Ferramentas de Vídeo</h2>
-                    <p>Converta vídeos para MP4 e extraia thumbnails.</p>
+                    <div class="icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20.5,15.6V8.4a1,1,0,0,0-1.55-.83L15,9.85V6A2,2,0,0,0,13,4H4A2,2,0,0,0,2,6v12a2,2,0,0,0,2,2h9a2,2,0,0,0,2-2V14.15l3.95,2.08A1,1,0,0,0,20.5,15.6Z"/>
+                        </svg>
+                    </div>
+                    <h2>Conversão de Vídeo</h2>
+                    <p>Converta vídeos para MP4 otimizado e gere thumbnails de alta qualidade.</p>
                 </div>
+
                 <div class="tool-card" data-modal="slideshow-modal">
-                    <div class="icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M19,2H5A3,3,0,0,0,2,5V19a3,3,0,0,0,3,3H19a3,3,0,0,0,3-3V5A3,3,0,0,0,19,2ZM8,14.5,5,18H19l-4-6-3.5,4.5ZM5,4H19a1,1,0,0,1,1,1V15.35L17.5,13,14,9.5,10.5,14,8.5,11.5,5,15.5Z"/></svg></div>
+                    <div class="icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19,2H5A3,3,0,0,0,2,5V19a3,3,0,0,0,3,3H19a3,3,0,0,0,3-3V5A3,3,0,0,0,19,2ZM8,14.5,5,18H19l-4-6-3.5,4.5ZM5,4H19a1,1,0,0,1,1,1V15.35L17.5,13,14,9.5,10.5,14,8.5,11.5,5,15.5Z"/>
+                        </svg>
+                    </div>
                     <h2>Criador de Slideshow</h2>
-                    <p>Crie um vídeo a partir de uma coleção de imagens.</p>
+                    <p>Transforme suas fotos em um vídeo slideshow cinematográfico com transições suaves.</p>
                 </div>
+
                 <div class="tool-card" data-modal="pdf-modal">
-                    <div class="icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20,8.55V20a2,2,0,0,1-2,2H6a2,2,0,0,1-2-2V4A2,2,0,0,1,6,2h8.59a1,1,0,0,1,.7.29l4.42,4.42A1,1,0,0,1,20,8.55ZM18,9h-4.5A1.5,1.5,0,0,1,12,7.5V3H6V20H18ZM8,14a1,1,0,0,0,0,2h8a1,1,0,0,0,0-2Z"/></svg></div>
-                    <h2>Ferramentas de Documento</h2>
-                    <p>Junte múltiplos ficheiros PDF num só ou converta-os para imagem.</p>
+                    <div class="icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20,8.55V20a2,2,0,0,1-2,2H6a2,2,0,0,1-2-2V4A2,2,0,0,1,6,2h8.59a1,1,0,0,1,.7.29l4.42,4.42A1,1,0,0,1,20,8.55ZM18,9h-4.5A1.5,1.5,0,0,1,12,7.5V3H6V20H18ZM8,14a1,1,0,0,0,0,2h8a1,1,0,0,0,0-2Z"/>
+                        </svg>
+                    </div>
+                    <h2>Gestão de Documentos</h2>
+                    <p>Una múltiplos PDFs ou converta documentos para imagens com precisão perfeita.</p>
                 </div>
             </div>
         </main>
@@ -73,74 +554,155 @@
     <!-- Modal para Ferramentas de Imagem -->
     <div id="image-modal" class="modal">
         <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <h2>Ferramentas de Imagem</h2>
-            <form>
-                <label for="image-op">Operação:</label>
-                <select name="operation" id="image-op" required>
-                    <option value="img_to_bw">Converter para Preto e Branco</option>
-                    <option value="img_to_sepia">Aplicar Filtro Sépia</option>
-                </select>
-                <label for="image-file">Ficheiro (PNG, JPG, etc.):</label>
-                <input type="file" name="file" id="image-file" accept="image/*" required>
-                <button type="submit" class="btn">Processar Imagem</button>
-            </form>
-            <div class="terminal">Aguardando envio...</div>
+            <div class="modal-header">
+                <h2>Processamento de Imagem</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <label for="image-op">Selecione o filtro:</label>
+                    <select name="operation" id="image-op" required>
+                        <option value="img_to_bw">Converter para Preto e Branco</option>
+                        <option value="img_to_sepia">Aplicar Filtro Sépia</option>
+                    </select>
+                    
+                    <label for="image-file">Escolha sua imagem:</label>
+                    <input type="file" name="file" id="image-file" accept="image/*" required>
+                    
+                    <button type="submit" class="btn">
+                        <span class="btn-text">Processar Imagem</span>
+                        <span class="loading-spinner" style="display: none;"></span>
+                    </button>
+                </form>
+                
+                <div class="progress-container">
+                    <div class="progress-label">
+                        <span>Processando...</span>
+                        <span class="progress-percent">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                </div>
+                
+                <div class="status-message"></div>
+            </div>
         </div>
     </div>
     
     <!-- Modal para Ferramentas de Vídeo -->
     <div id="video-modal" class="modal">
         <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <h2>Ferramentas de Vídeo</h2>
-            <form>
-                <label for="video-op">Operação:</label>
-                <select name="operation" id="video-op" required>
-                    <option value="video_to_mp4">Converter para MP4</option>
-                    <option value="generate_thumbnail">Gerar Thumbnail (do segundo 2)</option>
-                </select>
-                <label for="video-file">Ficheiro de Vídeo:</label>
-                <input type="file" name="file" id="video-file" accept="video/*" required>
-                <button type="submit" class="btn">Processar Vídeo</button>
-            </form>
-            <div class="terminal">Aguardando envio...</div>
+            <div class="modal-header">
+                <h2>Conversão de Vídeo</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <label for="video-op">Selecione a operação:</label>
+                    <select name="operation" id="video-op" required>
+                        <option value="video_to_mp4">Converter para MP4</option>
+                        <option value="generate_thumbnail">Gerar Thumbnail (segundo 2)</option>
+                    </select>
+                    
+                    <label for="video-file">Escolha seu vídeo:</label>
+                    <input type="file" name="file" id="video-file" accept="video/*" required>
+                    
+                    <button type="submit" class="btn">
+                        <span class="btn-text">Processar Vídeo</span>
+                        <span class="loading-spinner" style="display: none;"></span>
+                    </button>
+                </form>
+                
+                <div class="progress-container">
+                    <div class="progress-label">
+                        <span>Processando...</span>
+                        <span class="progress-percent">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                </div>
+                
+                <div class="status-message"></div>
+            </div>
         </div>
     </div>
 
     <!-- Modal para Criador de Slideshow -->
     <div id="slideshow-modal" class="modal">
         <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <h2>Criador de Slideshow</h2>
-            <form>
-                <input type="hidden" name="operation" value="create_slideshow">
-                <label for="slideshow-files">Imagens (Envie um ficheiro .ZIP com as imagens):</label>
-                <input type="file" name="file" id="slideshow-files" accept=".zip" required>
-                <label for="slide-duration">Duração de cada imagem (segundos):</label>
-                <input type="number" name="params" id="slide-duration" value="3" min="1" required>
-                <button type="submit" class="btn">Criar Slideshow</button>
-            </form>
-            <div class="terminal">Aguardando envio...</div>
+            <div class="modal-header">
+                <h2>Criador de Slideshow</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <input type="hidden" name="operation" value="create_slideshow">
+                    
+                    <label for="slideshow-files">Arquivo ZIP com imagens:</label>
+                    <input type="file" name="file" id="slideshow-files" accept=".zip" required>
+                    
+                    <label for="slide-duration">Duração por imagem (segundos):</label>
+                    <input type="number" name="params" id="slide-duration" value="3" min="1" max="10" required>
+                    
+                    <button type="submit" class="btn">
+                        <span class="btn-text">Criar Slideshow</span>
+                        <span class="loading-spinner" style="display: none;"></span>
+                    </button>
+                </form>
+                
+                <div class="progress-container">
+                    <div class="progress-label">
+                        <span>Criando slideshow...</span>
+                        <span class="progress-percent">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                </div>
+                
+                <div class="status-message"></div>
+            </div>
         </div>
     </div>
 
     <!-- Modal para Ferramentas de PDF -->
     <div id="pdf-modal" class="modal">
         <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <h2>Ferramentas de Documento</h2>
-            <form>
-                 <label for="pdf-op">Operação:</label>
-                <select name="operation" id="pdf-op" required>
-                    <option value="pdf_to_images">Converter PDF para Imagens (ZIP)</option>
-                    <option value="merge_pdfs">Juntar PDFs (Envie um ZIP)</option>
-                </select>
-                <label for="pdf-file">Ficheiro PDF ou ZIP:</label>
-                <input type="file" name="file" id="pdf-file" accept=".pdf,.zip" required>
-                <button type="submit" class="btn">Processar Documento</button>
-            </form>
-            <div class="terminal">Aguardando envio...</div>
+            <div class="modal-header">
+                <h2>Gestão de Documentos</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <label for="pdf-op">Selecione a operação:</label>
+                    <select name="operation" id="pdf-op" required>
+                        <option value="pdf_to_images">Converter PDF para Imagens</option>
+                        <option value="merge_pdfs">Unir PDFs (envie ZIP)</option>
+                    </select>
+                    
+                    <label for="pdf-file">Escolha o arquivo:</label>
+                    <input type="file" name="file" id="pdf-file" accept=".pdf,.zip" required>
+                    
+                    <button type="submit" class="btn">
+                        <span class="btn-text">Processar Documento</span>
+                        <span class="loading-spinner" style="display: none;"></span>
+                    </button>
+                </form>
+                
+                <div class="progress-container">
+                    <div class="progress-label">
+                        <span>Processando documento...</span>
+                        <span class="progress-percent">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                </div>
+                
+                <div class="status-message"></div>
+            </div>
         </div>
     </div>
     
@@ -151,90 +713,153 @@
 
         toolCards.forEach(card => {
             card.addEventListener('click', () => {
-                document.getElementById(card.dataset.modal).style.display = 'flex';
+                const modal = document.getElementById(card.dataset.modal);
+                modal.style.display = 'flex';
+                resetModal(modal);
             });
         });
 
         const closeModal = (modal) => {
             modal.style.display = 'none';
-            const form = modal.querySelector('form');
-            if(form) {
-                form.reset();
-                const terminal = form.nextElementSibling;
-                terminal.innerHTML = 'Aguardando envio...';
-                form.querySelector('button').disabled = false;
-                form.querySelector('button').textContent = 'Processar'; 
-            }
+            resetModal(modal);
         };
-        closeBtns.forEach(btn => btn.addEventListener('click', () => closeModal(btn.closest('.modal'))));
+
+        const resetModal = (modal) => {
+            const form = modal.querySelector('form');
+            const progressContainer = modal.querySelector('.progress-container');
+            const statusMessage = modal.querySelector('.status-message');
+            const btn = modal.querySelector('.btn');
+            const btnText = btn.querySelector('.btn-text');
+            const spinner = btn.querySelector('.loading-spinner');
+            
+            if (form) form.reset();
+            if (progressContainer) progressContainer.style.display = 'none';
+            if (statusMessage) {
+                statusMessage.style.display = 'none';
+                statusMessage.className = 'status-message';
+            }
+            
+            btn.disabled = false;
+            btnText.style.display = 'inline';
+            spinner.style.display = 'none';
+            
+            // Reset progress
+            const progressFill = modal.querySelector('.progress-fill');
+            const progressPercent = modal.querySelector('.progress-percent');
+            if (progressFill) progressFill.style.width = '0%';
+            if (progressPercent) progressPercent.textContent = '0%';
+        };
+
+        closeBtns.forEach(btn => {
+            btn.addEventListener('click', () => closeModal(btn.closest('.modal')));
+        });
+
         window.addEventListener('click', (event) => {
-            if (event.target.classList.contains('modal')) closeModal(event.target);
+            if (event.target.classList.contains('modal')) {
+                closeModal(event.target);
+            }
         });
 
         // Lógica de Submissão de Formulário
         document.querySelectorAll('form').forEach(form => {
             form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const btn = form.querySelector('button');
-                const terminal = form.nextElementSibling;
-                
-                const fileInput = form.querySelector('input[type="file"]');
-                if (!fileInput.files[0]) {
-                    terminal.textContent = 'Erro: Por favor, selecione um ficheiro.';
+            e.preventDefault();
+            
+            const modal = form.closest('.modal');
+            const btn = form.querySelector('.btn');
+            const btnText = btn.querySelector('.btn-text');
+            const spinner = btn.querySelector('.loading-spinner');
+            const progressContainer = modal.querySelector('.progress-container');
+            const statusMessage = modal.querySelector('.status-message');
+            const progressFill = modal.querySelector('.progress-fill');
+            const progressPercent = modal.querySelector('.progress-percent');
+            
+            const fileInput = form.querySelector('input[type="file"]');
+            if (!fileInput.files[0]) {
+                showStatusMessage(statusMessage, 'Por favor, selecione um arquivo.', 'error');
+                return;
+            }
+            
+            // Disable button and show loading
+            btn.disabled = true;
+            btnText.style.display = 'none';
+            spinner.style.display = 'inline-block';
+            
+            // Show progress bar
+            progressContainer.style.display = 'block';
+            progressFill.style.width = '0%';
+            progressPercent.textContent = '0%';
+            statusMessage.style.display = 'none';
+            statusMessage.className = 'status-message';
+
+            // Monta FormData
+            const formData = new FormData(form);
+
+            // Adiciona arquivo
+            formData.set('file', fileInput.files[0]);
+
+            // Envia para endpoint (ajuste a URL conforme seu backend)
+            try {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', '/api/process', true);
+
+                xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    progressFill.style.width = percent + '%';
+                    progressPercent.textContent = percent + '%';
+                }
+                };
+
+                xhr.onload = function() {
+                btn.disabled = false;
+                btnText.style.display = 'inline';
+                spinner.style.display = 'none';
+
+                if (xhr.status === 200) {
+                    let response;
+                    try {
+                    response = JSON.parse(xhr.responseText);
+                    } catch {
+                    showStatusMessage(statusMessage, 'Erro ao processar resposta do servidor.', 'error');
                     return;
+                    }
+                    if (response.success && response.download_url) {
+                    showStatusMessage(
+                        statusMessage,
+                        `<a href="${response.download_url}" class="download-link" download>Baixar arquivo processado</a>`,
+                        'success'
+                    );
+                    } else if (response.error) {
+                    showStatusMessage(statusMessage, response.error, 'error');
+                    } else {
+                    showStatusMessage(statusMessage, 'Processamento concluído, mas sem arquivo para download.', 'info');
+                    }
+                } else {
+                    showStatusMessage(statusMessage, 'Erro no processamento. Tente novamente.', 'error');
                 }
-                
-                const originalBtnText = btn.textContent;
-                btn.disabled = true;
-                btn.textContent = 'A enviar...';
-                terminal.textContent = 'A enviar ficheiro(s) para o armazenamento...';
-                
-                const formData = new FormData(form);
+                };
 
-                try {
-                    const response = await fetch('/upload', { method: 'POST', body: formData });
-                    const result = await response.json();
+                xhr.onerror = function() {
+                btn.disabled = false;
+                btnText.style.display = 'inline';
+                spinner.style.display = 'none';
+                showStatusMessage(statusMessage, 'Erro de conexão. Tente novamente.', 'error');
+                };
 
-                    if (!response.ok) throw new Error(result.error || 'Erro desconhecido no upload.');
-
-                    terminal.textContent = `Ficheiro enviado! ID do trabalho: ${result.jobId}\nA aguardar processamento...`;
-                    pollForStatus(result.jobId, terminal, btn, originalBtnText);
-
-                } catch (error) {
-                    terminal.textContent = `Erro no envio: ${error.message}`;
-                    btn.disabled = false;
-                    btn.textContent = originalBtnText;
-                }
+                xhr.send(formData);
+            } catch (err) {
+                btn.disabled = false;
+                btnText.style.display = 'inline';
+                spinner.style.display = 'none';
+                showStatusMessage(statusMessage, 'Erro inesperado. Tente novamente.', 'error');
+            }
             });
         });
 
-        function pollForStatus(jobId, terminal, btn, originalBtnText) {
-            const intervalId = setInterval(async () => {
-                try {
-                    const response = await fetch(`/status/${jobId}`);
-                    const data = await response.json();
-                    
-                    if (!response.ok) throw new Error(data.error || "Erro de servidor");
-                    
-                    terminal.textContent = `A verificar... (Estado atual: ${data.status || 'pendente'})`;
-
-                    if (data.status === 'completed') {
-                        clearInterval(intervalId);
-                        terminal.innerHTML = `Processamento concluído!<br><a href="${data.outputUrl}" target="_blank" class="download-link">Descarregar Ficheiro</a>`;
-                        btn.disabled = false;
-                        btn.textContent = 'Processar Outro';
-                    } else if (data.status === 'failed') {
-                        clearInterval(intervalId);
-                        terminal.textContent = `Falha no processamento: ${data.errorMessage}`;
-                        btn.disabled = false;
-                        btn.textContent = 'Tentar Novamente';
-                    }
-                } catch (error) {
-                    clearInterval(intervalId);
-                    terminal.textContent = 'Erro de conexão ao verificar o estado do trabalho.';
-                }
-            }, 5000); // Verifica a cada 5 segundos
+        // Função utilitária para mostrar mensagens de status
+        function showStatusMessage(element, message, type) {
+            element.innerHTML = message;
+            element.className = 'status-message ' + type;
+            element.style.display = 'block';
         }
-    </script>
-</body>
-</html>
