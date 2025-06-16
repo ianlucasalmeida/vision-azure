@@ -1,5 +1,5 @@
 # Arquivo: .github/workflows/main_vision-az-linux.yml
-# Versão final e corrigida, que instala as dependências no pacote de deploy.
+# Versão final e corrigida, que confia no sistema de build do Azure.
 
 name: Build and deploy Web App and Function App to Azure
 
@@ -45,17 +45,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python version
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      # PASSO CORRIGIDO: Instala as dependências DIRETAMENTE na pasta
-      # que será enviada para o Azure. Isto inclui as bibliotecas no pacote final.
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r ./function_app/requirements.txt --target="./function_app/.python_packages/lib/python3.11/site-packages"
+      # O passo de instalação manual de dependências foi REMOVIDO daqui.
+      # O sistema de build do Azure (Oryx) irá detetar o requirements.txt
+      # e instalar tudo automaticamente no ambiente correto.
 
       - name: Log in to Azure
         uses: azure/login@v2
