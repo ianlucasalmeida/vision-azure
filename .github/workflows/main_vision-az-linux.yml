@@ -7,17 +7,18 @@ on:
   workflow_dispatch:
 
 jobs:
-  # TRABALHO 1: Implantar o site (Frontend) - Mantido inalterado
+  # JOB 1 - Deploy do Frontend (Web App)
   deploy-webapp:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Log in to Azure
+      - name: Login to Azure
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_5A49747CD89F4688882C8FF9592511B1 }}
@@ -28,53 +29,42 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'vision-az-linux'
-          package: ./frontend
+          package: ./frontend-flask
 
-  # TRABALHO 2: Implantar a função de processamento (Backend) - ATUALIZADO para nova estrutura
+  # JOB 2 - Deploy do Backend (Function App com native deps)
   deploy-functionapp:
     runs-on: ubuntu-latest
     needs: deploy-webapp
     permissions:
       id-token: write
       contents: read
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python version
+      - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      # PASSO ATUALIZADO: Instala dependências no novo diretório backend/functions
-      - name: Install Python dependencies for Function App
-        run: |
-          cd backend/functions
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt --target="./.python_packages/lib/site-packages"
-          
-          # Instala dependências adicionais para processamento
-          pip install opencv-python-headless PyMuPDF Pillow
+      - name: Install Node.js (para Azure Functions Core Tools)
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
 
-      - name: Log in to Azure
+      - name: Install Azure Functions Core Tools
+        run: |
+          npm install -g azure-functions-core-tools@4 --unsafe-perm true
+
+      - name: Login to Azure
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_5A49747CD89F4688882C8FF9592511B1 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_20782B1DE23448ACBECB0F8807D5B218 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F558C0E4056849249AA4CE88EDC41690 }}
 
-      # PASSO ATUALIZADO: Deploy apontando para o novo diretório backend/functions
-      - name: Deploy to Azure Function App
-        uses: Azure/functions-action@v1
-        with:
-          app-name: 'vision-az-functions-ian'
-          package: ./backend/functions
-          # Habilitar build Oryx para dependências nativas
-          enable-oryx-build: true
-          
-      # PASSO ADICIONAL: Configurar PYTHONPATH para acesso aos módulos compartilhados
-      - name: Configure Python Path
+      - name: Publish Function App with native dependencies
         run: |
-          echo "PYTHONPATH=$GITHUB_WORKSPACE/backend/shared" >> $GITHUB_ENV
-        shell: bash
+          cd backend-functions
+          func azure functionapp publish vision-az-functions-ian --build-native-deps --python
