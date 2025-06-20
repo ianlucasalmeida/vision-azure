@@ -1,7 +1,3 @@
-# Arquivo: .github/workflows/main_vision-az-linux.yml
-# Versão final e completa, desenhada para a estrutura refatorada.
-# Este workflow implanta tanto o site (App Service) quanto a função (Function App).
-
 name: Build and deploy Web App and Function App to Azure
 
 on:
@@ -11,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  # TRABALHO 1: Implantar o site (Frontend "Loja")
+  # TRABALHO 1: Implantar o site (Frontend) - Mantido inalterado
   deploy-webapp:
     runs-on: ubuntu-latest
     permissions:
@@ -32,15 +28,11 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'vision-az-linux'
-          # Aponta para a pasta correta do frontend.
-          # O sistema de build do Azure (Oryx) irá detetar o
-          # requirements.txt e instalar as dependências.
           package: ./frontend
 
-  # TRABALHO 2: Implantar a função de processamento (Backend "Fábrica")
+  # TRABALHO 2: Implantar a função de processamento (Backend) - ATUALIZADO para nova estrutura
   deploy-functionapp:
     runs-on: ubuntu-latest
-    # Garante que a função só será implantada se o deploy do site for bem-sucedido
     needs: deploy-webapp
     permissions:
       id-token: write
@@ -55,25 +47,34 @@ jobs:
         with:
           python-version: '3.11'
 
-      # Instala as dependências (Pillow, moviepy, etc.) na estrutura correta
-      # para ser empacotada e enviada para o Azure.
+      # PASSO ATUALIZADO: Instala dependências no novo diretório backend/functions
       - name: Install Python dependencies for Function App
         run: |
+          cd backend/functions
           python -m pip install --upgrade pip
-          pip install -r ./function_app/requirements.txt --target="./function_app/.python_packages/lib/python3.11/site-packages"
+          pip install -r requirements.txt --target="./.python_packages/lib/site-packages"
+          
+          # Instala dependências adicionais para processamento
+          pip install opencv-python-headless PyMuPDF Pillow
 
       - name: Log in to Azure
         uses: azure/login@v2
         with:
-          # Usa os mesmos segredos que já estão configurados
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_5A49747CD89F4688882C8FF9592511B1 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_20782B1DE23448ACBECB0F8807D5B218 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F558C0E4056849249AA4CE88EDC41690 }}
 
+      # PASSO ATUALIZADO: Deploy apontando para o novo diretório backend/functions
       - name: Deploy to Azure Function App
         uses: Azure/functions-action@v1
         with:
-          # Garanta que este é o nome exato do seu Aplicativo de Funções
-          app-name: 'vision-az-functions-ian' 
-          # Aponta para a pasta do backend, que agora contém o código e as dependências
-          package: ./function_app
+          app-name: 'vision-az-functions-ian'
+          package: ./backend/functions
+          # Habilitar build Oryx para dependências nativas
+          enable-oryx-build: true
+          
+      # PASSO ADICIONAL: Configurar PYTHONPATH para acesso aos módulos compartilhados
+      - name: Configure Python Path
+        run: |
+          echo "PYTHONPATH=$GITHUB_WORKSPACE/backend/shared" >> $GITHUB_ENV
+        shell: bash
