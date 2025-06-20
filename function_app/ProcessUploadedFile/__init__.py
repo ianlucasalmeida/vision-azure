@@ -1,16 +1,15 @@
 # Ficheiro: function_app/ProcessUploadedFile/__init__.py
-# Versão final e simplificada. Toda a lógica está contida ou é importada
-# a partir desta pasta para garantir que o Azure a encontre.
+# Versão corrigida com imports relativos para funcionar no Azure Functions
 
 import logging
 import os
 import azure.functions as func
 
-# Importa os processadores diretamente da mesma pasta
-from . import image_processor
-from . import video_processor
-from . import pdf_processor
-from . import slideshow_creator
+# IMPORTANTE: Corrigido o caminho de importação
+from ..shared_code.processors import image_processor
+from ..shared_code.processors import video_processor
+from ..shared_code.processors import pdf_processor
+from ..shared_code.processors import slideshow_creator
 
 from azure.storage.blob import BlobServiceClient
 from azure.data.tables import TableServiceClient
