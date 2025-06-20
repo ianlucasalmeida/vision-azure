@@ -1,6 +1,3 @@
-# Arquivo: .github/workflows/main_vision-az-linux.yml
-# Versão final e completa, desenhada para a estrutura refatorada.
-
 name: Build and deploy Web App and Function App to Azure
 
 on:
@@ -31,13 +28,11 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'vision-az-linux'
-          # Aponta para a pasta correta do frontend
           package: ./frontend
 
   # TRABALHO 2: Implantar a função de processamento (Backend "Fábrica")
   deploy-functionapp:
     runs-on: ubuntu-latest
-    # Garante que a função só será implantada se o deploy do site for bem-sucedido
     needs: deploy-webapp
     permissions:
       id-token: write
@@ -52,24 +47,34 @@ jobs:
         with:
           python-version: '3.11'
 
-      # Instala as dependências na estrutura correta para o "Run-From-Package"
-      - name: Install Python dependencies for Function App
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r ./function_app/requirements.txt --target="./function_app/.python_packages/lib/python3.11/site-packages"
-
       - name: Log in to Azure
         uses: azure/login@v2
         with:
-          # Usa os mesmos segredos que já estão configurados
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_5A49747CD89F4688882C8FF9592511B1 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_20782B1DE23448ACBECB0F8807D5B218 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F558C0E4056849249AA4CE88EDC41690 }}
 
+      # PASSO CRÍTICO ADICIONADO: Build explícito com Oryx
+      - name: Build Function App with Oryx
+        uses: Azure/oryx-action@v1
+        with:
+          platform: python
+          platform-version: '3.11'
+          app-dir: './function_app'
+          publish-output: './oryx_build_output'
+
+      # PASSO ATUALIZADO: Usa o output do Oryx
       - name: Deploy to Azure Function App
         uses: Azure/functions-action@v1
         with:
-          # Garanta que este é o nome exato do seu Aplicativo de Funções
-          app-name: 'vision-az-functions-ian' 
-          # Aponta para a pasta correta do backend
-          package: ./function_app
+          app-name: 'vision-az-functions-ian'
+          package: './oryx_build_output'
+
+      # PASSO ADICIONADO: Sincronização manual de triggers
+      - name: Sync triggers and restart
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            az functionapp restart --name vision-az-functions-ian --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }}
+            az functionapp sync --name vision-az-functions-ian --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }}
+            sleep 30  # Aguarda a inicialização
