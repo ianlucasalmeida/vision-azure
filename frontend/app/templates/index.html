@@ -104,7 +104,7 @@
                     <input type="file" name="file" id="image-file" accept="image/*" required>
                     <button type="submit" class="btn"><span class="btn-text">Processar Imagem</span><span class="loading-spinner"></span></button>
                 </form>
-                <div class="status-message"></div>
+                <div class="status-message">Aguardando envio...</div>
             </div>
         </div>
     </div>
@@ -125,7 +125,7 @@
                     <input type="file" name="file" id="video-file" accept="video/*" required>
                     <button type="submit" class="btn"><span class="btn-text">Processar Vídeo</span><span class="loading-spinner"></span></button>
                 </form>
-                <div class="status-message"></div>
+                <div class="status-message">Aguardando envio...</div>
             </div>
         </div>
     </div>
@@ -141,7 +141,7 @@
                     <input type="number" name="params" id="slide-duration" value="3" min="1" max="10" required>
                     <button type="submit" class="btn"><span class="btn-text">Criar Slideshow</span><span class="loading-spinner"></span></button>
                 </form>
-                <div class="status-message"></div>
+                <div class="status-message">Aguardando envio...</div>
             </div>
         </div>
     </div>
@@ -159,21 +159,19 @@
                     <input type="file" name="file" id="pdf-file" accept=".pdf,.zip" required>
                     <button type="submit" class="btn"><span class="btn-text">Processar Documento</span><span class="loading-spinner"></span></button>
                 </form>
-                <div class="status-message"></div>
+                <div class="status-message">Aguardando envio...</div>
             </div>
         </div>
     </div>
     
     <script>
-        // --- LÓGICA CORRIGIDA E COMPLETA ---
-
+        // Lógica para abrir e fechar modais
         const toolCards = document.querySelectorAll('.tool-card');
         const closeBtns = document.querySelectorAll('.close-btn');
 
-        // Lógica para abrir/fechar modais
         toolCards.forEach(card => card.addEventListener('click', () => {
             const modal = document.getElementById(card.dataset.modal);
-            resetModal(modal); // Reseta o estado do modal ao abrir
+            resetModal(modal);
             modal.style.display = 'flex';
         }));
         
@@ -187,8 +185,7 @@
             const form = modal.querySelector('form');
             if (form) form.reset();
             const statusMessage = modal.querySelector('.status-message');
-            statusMessage.style.display = 'none';
-            statusMessage.className = 'status-message';
+            showStatusMessage(statusMessage, 'Aguardando envio...', 'info');
             const btn = modal.querySelector('.btn');
             btn.disabled = false;
             btn.querySelector('.btn-text').style.display = 'inline';
@@ -212,7 +209,6 @@
                     return;
                 }
                 
-                // Ativar estado de loading
                 btn.disabled = true;
                 btnText.style.display = 'none';
                 spinner.style.display = 'inline-block';
@@ -221,7 +217,6 @@
                 const formData = new FormData(form);
 
                 try {
-                    // Envia para o endpoint /upload do Flask
                     const response = await fetch('/upload', { method: 'POST', body: formData });
                     const result = await response.json();
 
@@ -229,7 +224,7 @@
                         throw new Error(result.error || 'Erro desconhecido durante o upload.');
                     }
                     
-                    showStatusMessage(statusMessage, `Ficheiro enviado! A aguardar processamento (ID: ${result.jobId})...`, 'info');
+                    showStatusMessage(statusMessage, `Ficheiro enviado! A aguardar processamento...`, 'info');
                     pollForStatus(result.jobId, statusMessage, btn);
 
                 } catch (error) {
@@ -248,7 +243,7 @@
             const intervalId = setInterval(async () => {
                 try {
                     const response = await fetch(`/status/${jobId}`);
-                    if (!response.ok) return; // Continua a tentar se houver erro de rede
+                    if (!response.ok) return;
                     
                     const data = await response.json();
                     
@@ -262,7 +257,6 @@
                         btn.disabled = false;
                         btnText.style.display = 'inline';
                         spinner.style.display = 'none';
-
                     } else if (data.status === 'failed') {
                         clearInterval(intervalId);
                         showStatusMessage(statusMessage, `Falha no processamento: ${data.errorMessage}`, 'error');
@@ -273,10 +267,9 @@
                          showStatusMessage(statusMessage, `A processar... (Estado: ${data.status || 'pendente'})`, 'info');
                     }
                 } catch (error) {
-                    // Não para o intervalo em caso de erro de rede, apenas tenta novamente
                     console.warn('Erro ao verificar o estado, a tentar novamente...', error);
                 }
-            }, 5000); // Verifica a cada 5 segundos
+            }, 5000);
         }
 
         function showStatusMessage(element, message, type) {
