@@ -1,0 +1,9 @@
+{
+  "description": {
+    "defaultExecutablePath": "python",
+    "arguments": [
+      "-u",
+      "/azure-functions-host/workers/python/3.11/LINUX/X64/worker.py"
+    ]
+  }
+}
