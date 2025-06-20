@@ -1,5 +1,18 @@
+# Ficheiro: backend/functions/requirements.txt
+# Lista de todas as dependências necessárias para a Azure Function.
+
+# Dependências do Azure
 azure-functions
 azure-storage-blob
-azure-cognitiveservices-vision-computervision
-msrest
-Pillow  # Se necessário para processamento de imagens
+azure-data-tables
+
+# Dependências para processamento de imagem e vídeo
+Pillow
+moviepy
+
+# Dependências para processamento de PDF
+pypdf
+PyMuPDF
+
+# Dependência para o encurtador de links
+requests
