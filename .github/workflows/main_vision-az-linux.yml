@@ -30,7 +30,7 @@ jobs:
           app-name: 'vision-az-linux'
           package: ./frontend
 
-  # TRABALHO 2: Implantar a função de processamento (Backend) - ATUALIZADO
+  # TRABALHO 2: Implantar a função de processamento (Backend) - ATUALIZADO para nova estrutura
   deploy-functionapp:
     runs-on: ubuntu-latest
     needs: deploy-webapp
@@ -47,7 +47,7 @@ jobs:
         with:
           python-version: '3.11'
 
-      # PASSO ATUALIZADO: Instala dependências de forma otimizada
+      # PASSO ATUALIZADO: Instala dependências no novo diretório backend/functions
       - name: Install Python dependencies for Function App
         run: |
           cd backend/functions
@@ -64,24 +64,16 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_20782B1DE23448ACBECB0F8807D5B218 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F558C0E4056849249AA4CE88EDC41690 }}
 
-      # PASSO ATUALIZADO: Deploy com build Oryx habilitado
+      # PASSO ATUALIZADO: Deploy apontando para o novo diretório backend/functions
       - name: Deploy to Azure Function App
         uses: Azure/functions-action@v1
         with:
           app-name: 'vision-az-functions-ian'
           package: ./backend/functions
-          enable-oryx-build: true  # Habilita build automático
+          # Habilitar build Oryx para dependências nativas
+          enable-oryx-build: true
           
-      # PASSO ADICIONADO: Sincronização manual de triggers
-      - name: Sync triggers and restart
-        uses: azure/CLI@v1
-        with:
-          inlineScript: |
-            az functionapp restart --name vision-az-functions-ian --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }}
-            az functionapp sync --name vision-az-functions-ian --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }}
-            sleep 30  # Aguarda a reinicialização
-
-      # PASSO MANTIDO: Configuração do PYTHONPATH
+      # PASSO ADICIONAL: Configurar PYTHONPATH para acesso aos módulos compartilhados
       - name: Configure Python Path
         run: |
           echo "PYTHONPATH=$GITHUB_WORKSPACE/backend/shared" >> $GITHUB_ENV
