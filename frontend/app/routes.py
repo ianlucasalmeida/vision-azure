@@ -1,31 +1,24 @@
 # Ficheiro: frontend/app/routes.py
-
 import os
 import uuid
-from flask import Blueprint, render_template, request, jsonify
-from azure.storage.blob import BlobServiceClient
-from azure.data.tables import TableServiceClient
+from flask import Blueprint, render_template, request, jsonify, current_app
 from datetime import datetime
+import logging
 
-# Blueprint da aplicação
-main_routes = Blueprint('main', __name__)
+# --- CORREÇÃO PRINCIPAL: DEFINIR O BLUEPRINT ---
+# Mudamos o nome para 'bp' para corresponder à chamada em __init__.py
+bp = Blueprint('main', __name__)
 
-# Inicialização dos clientes Azure a partir das variáveis de ambiente
-connection_string = os.environ.get("STORAGE_CONNECTION_STRING")
-blob_service_client = BlobServiceClient.from_connection_string(connection_string)
-table_service_client = TableServiceClient.from_connection_string(connection_string)
-jobs_table_client = table_service_client.get_table_client("jobs")
+# REMOVEMOS a inicialização dos clientes daqui.
 
-@main_routes.route('/')
+@bp.route('/')
 def index():
     return render_template('index.html', title='Upload de Ficheiro')
 
-@main_routes.route('/upload', methods=['POST'])
+@bp.route('/upload', methods=['POST'])
 def upload_file():
-    """
-    Recebe o arquivo, cria a entrada na tabela e envia para o blob de input.
-    Retorna o ID do trabalho (job_id).
-    """
+    logging.info("Recebida uma nova requisição na rota /upload.")
+    
     if 'file' not in request.files:
         return jsonify({'error': 'Nenhum ficheiro selecionado'}), 400
     
@@ -36,53 +29,53 @@ def upload_file():
         return jsonify({'error': 'Nome do ficheiro vazio'}), 400
 
     try:
-        # 1. GERAR UM ID ÚNICO PARA O TRABALHO
+        # --- CORREÇÃO: ACEDER AOS CLIENTES ATRAVÉS DO 'current_app' ---
+        jobs_table_client = current_app.jobs_table_client
+        blob_service_client = current_app.blob_service_client
+
+        if not jobs_table_client or not blob_service_client:
+            raise ConnectionError("Os serviços de armazenamento não foram inicializados.")
+
         job_id = str(uuid.uuid4())
         file_extension = os.path.splitext(file.filename)[1]
         blob_name = f"{job_id}{file_extension}"
 
-        # 2. CRIAR A ENTRADA INICIAL NA TABELA DE JOBS
         job_entity = {
-            'PartitionKey': 'image_processing',
-            'RowKey': job_id,
-            'status': 'Pending',
-            'original_filename': file.filename,
-            'operation': operation,
-            'timestamp': datetime.utcnow().isoformat()
+            'PartitionKey': 'image_processing', 'RowKey': job_id,
+            'status': 'Pending', 'original_filename': file.filename,
+            'operation': operation, 'timestamp': datetime.utcnow().isoformat()
         }
         jobs_table_client.create_entity(entity=job_entity)
+        logging.info(f"Job {job_id} criado na tabela com status 'Pending'.")
 
-        # 3. FAZER UPLOAD DO ARQUIVO PARA O CONTAINER 'input-files'
         input_container_name = "input-files"
         blob_client = blob_service_client.get_blob_client(container=input_container_name, blob=blob_name)
         
-        # Adiciona metadados que a Azure Function pode usar
         metadata = {'operation': operation, 'original_filename': file.filename}
         blob_client.upload_blob(file.read(), metadata=metadata, overwrite=True)
+        logging.info(f"Ficheiro para o job {job_id} enviado para o container '{input_container_name}'.")
 
-        # 4. RETORNAR O JOB_ID PARA O FRONTEND
         return jsonify({'job_id': job_id})
 
     except Exception as e:
+        logging.error(f"Erro na rota /upload: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
-@main_routes.route('/status/<job_id>', methods=['GET'])
+@bp.route('/status/<job_id>', methods=['GET'])
 def get_status(job_id):
-    """
-    Nova rota para consultar o status de um trabalho específico.
-    """
     try:
-        # CONSULTA A TABELA USANDO O JOB_ID (ROWKEY)
+        jobs_table_client = current_app.jobs_table_client
+        if not jobs_table_client:
+            raise ConnectionError("O serviço de tabela não foi inicializado.")
+
         entity = jobs_table_client.get_entity(partition_key="image_processing", row_key=job_id)
         
         response = {'status': entity.get('status')}
-        
-        # Se o trabalho estiver completo, também envia a URL do resultado
         if response['status'] == 'Completed':
             response['result_url'] = entity.get('result_url')
             
         return jsonify(response)
         
     except Exception as e:
-        # Pode dar erro se o job_id não for encontrado
+        logging.warning(f"Não foi possível obter o status para o job {job_id}. Erro: {e}")
         return jsonify({'status': 'Not Found', 'error': str(e)}), 404

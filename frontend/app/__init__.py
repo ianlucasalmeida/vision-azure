@@ -1,36 +1,47 @@
 # Ficheiro: frontend/app/__init__.py
-# Este ficheiro é a fábrica da sua aplicação Flask. Ele cria a aplicação,
-# configura-a e regista as rotas.
-
 import os
 import logging
 from flask import Flask
+from azure.storage.blob import BlobServiceClient
+from azure.data.tables import TableServiceClient
 
 def create_app():
     """Cria e configura uma instância da aplicação Flask."""
     
-    # Configura o logging básico para que as mensagens apareçam nos logs do Azure
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
     app = Flask(__name__)
-    
     logging.info("A iniciar a criação da aplicação Flask.")
 
-    # Lógica para carregar a string de conexão
-    storage_connection_string = os.environ.get("AZURE_STORAGE_CONNECTION_STRING")
+    # --- CORREÇÃO PRINCIPAL: CENTRALIZAR INICIALIZAÇÃO AQUI ---
+    try:
+        # Padronizando o nome da variável de ambiente
+        connection_string = os.environ["AZURE_STORAGE_CONNECTION_STRING"]
+        logging.info("AZURE_STORAGE_CONNECTION_STRING carregada com sucesso.")
 
-    if storage_connection_string:
-        app.config["STORAGE_CONNECTION_STRING"] = storage_connection_string
-        logging.info("STORAGE_CONNECTION_STRING carregada com sucesso a partir das variáveis de ambiente.")
-    else:
-        # Em produção, isto seria um erro crítico.
+        # Inicializa os clientes e os anexa ao objeto da aplicação.
+        # As rotas irão aceder a estes clientes através do 'current_app'.
+        app.blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+        app.jobs_table_client = TableServiceClient.from_connection_string(connection_string).get_table_client("jobs")
+        
+        logging.info("Clientes Blob e Table Storage inicializados com sucesso.")
+
+    except KeyError:
         logging.error("ERRO CRÍTICO: A variável de ambiente AZURE_STORAGE_CONNECTION_STRING não foi encontrada!")
-        # Definimos como None para evitar que a app trave, mas as operações de armazenamento falharão.
-        app.config["STORAGE_CONNECTION_STRING"] = None
+        # Em caso de erro, definimos como None para evitar que a app trave na inicialização.
+        app.blob_service_client = None
+        app.jobs_table_client = None
+    except Exception as e:
+        logging.error(f"ERRO CRÍTICO ao inicializar clientes Azure: {e}")
+        app.blob_service_client = None
+        app.jobs_table_client = None
 
-    # Importa e regista o blueprint das rotas a partir do ficheiro routes.py
-    from . import routes
-    app.register_blueprint(routes.bp)
-    logging.info("Blueprint de rotas registado com sucesso.")
+
+    # Regista o blueprint das rotas.
+    # O Flask é inteligente o suficiente para lidar com o contexto da aplicação aqui.
+    with app.app_context():
+        from . import routes
+        app.register_blueprint(routes.bp)
+        logging.info("Blueprint de rotas registado com sucesso.")
 
     return app
