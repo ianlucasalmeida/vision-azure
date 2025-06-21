@@ -7,7 +7,9 @@
     <style>
         body { font-family: sans-serif; margin: 2em; }
         .container { max-width: 600px; margin: auto; }
-        #status, #result { margin-top: 1em; padding: 1em; border-radius: 5px; }
+        form > * { display: block; margin-bottom: 10px; width: 100%; padding: 8px; box-sizing: border-box; }
+        button { background-color: #0078d4; color: white; border: none; cursor: pointer; }
+        #status, #result { margin-top: 1em; padding: 1em; border-radius: 5px; word-wrap: break-word; }
         .processing { background-color: #e6f7ff; border: 1px solid #91d5ff; }
         .completed { background-color: #f6ffed; border: 1px solid #b7eb8f; }
         .failed { background-color: #fff1f0; border: 1px solid #ffa39e; }
@@ -16,12 +18,21 @@
 </head>
 <body>
     <div class="container">
-        <h1>Upload de Imagem para Processamento</h1>
+        <h1>Processador de Mídia na Nuvem</h1>
         <form id="upload-form">
-            <label for="file-input">Escolha uma imagem:</label>
-            <input id="file-input" type="file" name="file" required title="Selecione um arquivo de imagem">
-            <input type="hidden" name="operation" value="img_to_bw">
-            <button type="submit">Enviar</button>
+            
+            <label for="file-input">1. Escolha o ficheiro:</label>
+            <input id="file-input" type="file" name="file" required>
+            
+            <label for="operation-select">2. Escolha a operação:</label>
+            <select id="operation-select" name="operation" required>
+                <option value="" disabled selected>Selecione uma opção...</option>
+                <option value="img_to_bw">Converter Imagem para Preto e Branco</option>
+                <option value="pdf_to_images">Extrair Imagens de PDF</option>
+                <option value="video_to_slideshow">Criar Slideshow de Vídeo</option>
+                </select>
+            
+            <button type="submit">3. Enviar para Processamento</button>
         </form>
 
         <div id="status"></div>
@@ -37,7 +48,6 @@
         form.addEventListener('submit', async function(event) {
             event.preventDefault();
 
-            // Limpa status e resultados anteriores
             statusDiv.innerHTML = '';
             statusDiv.className = '';
             resultDiv.innerHTML = '';
@@ -45,25 +55,26 @@
             statusDiv.className = 'processing';
             statusDiv.innerText = 'Enviando arquivo...';
 
+            // O FormData pega automaticamente o valor do <select>
             const formData = new FormData(form);
             
             try {
-                // 1. FAZ O UPLOAD E OBTÉM O JOB_ID
                 const response = await fetch('/upload', {
                     method: 'POST',
                     body: formData
                 });
 
-                if (!response.ok) {
-                    throw new Error('Falha no upload.');
-                }
-
                 const data = await response.json();
+
+                if (!response.ok) {
+                    // Se o servidor retornou um erro (como o 500), ele entra aqui
+                    throw new Error(data.error || 'Falha no upload.');
+                }
+                
                 const jobId = data.job_id;
 
                 if (jobId) {
                     statusDiv.innerText = `Arquivo enviado! Iniciando processamento (Job ID: ${jobId}). Aguarde...`;
-                    // 2. INICIA A CONSULTA PERIÓDICA (POLLING)
                     pollStatus(jobId);
                 } else {
                     throw new Error('Não foi possível obter o ID do trabalho.');
@@ -76,33 +87,32 @@
         });
 
         function pollStatus(jobId) {
-            // Limpa qualquer polling anterior
             if (pollingInterval) {
                 clearInterval(pollingInterval);
             }
 
-            // Pergunta o status a cada 3 segundos
             pollingInterval = setInterval(async () => {
                 try {
-                    // 3. CONSULTA A ROTA DE STATUS
                     const response = await fetch(`/status/${jobId}`);
                     const data = await response.json();
 
                     statusDiv.innerText = `Status do trabalho: ${data.status}`;
 
                     if (data.status === 'Completed') {
-                        // 4. SE COMPLETO, PARA O POLLING E MOSTRA O RESULTADO
                         clearInterval(pollingInterval);
                         statusDiv.className = 'completed';
                         resultDiv.innerHTML = `
                             <h3>Processamento Concluído!</h3>
                             <a href="${data.result_url}" target="_blank" download>Baixar Arquivo Processado</a>
-                            <br>
-                            <img src="${data.result_url}" alt="Imagem Processada">
+                            <p>URL: ${data.result_url}</p>
                         `;
                     } else if (data.status === 'Failed') {
                         clearInterval(pollingInterval);
                         statusDiv.className = 'failed';
+                        // Se a função de backend registar uma mensagem de erro, podemos mostrá-la
+                        if (data.error_message) {
+                           resultDiv.innerText = `Detalhes do erro: ${data.error_message}`;
+                        }
                     }
 
                 } catch (error) {
