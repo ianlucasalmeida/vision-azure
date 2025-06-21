@@ -5,14 +5,10 @@ import logging
 import os
 import azure.functions as func
 
-# O ficheiro de deploy (.yml) que você usa já configura o PYTHONPATH.
-# No entanto, para garantir que funcione, podemos adicionar o caminho manualmente.
-# Se o seu .yml já o faz, esta linha é uma segurança extra.
-# import sys
-# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'shared')))
+# Importa o gestor principal a partir do pacote 'shared'.
+# Esta é a correção principal, que trata 'shared' como um pacote.
+from shared.main_handler import process_event
 
-# Importa o gestor principal a partir da pasta 'shared'.
-from main_handler import process_event
 from azure.storage.blob import BlobServiceClient
 from azure.data.tables import TableServiceClient
 
@@ -22,10 +18,14 @@ def main(myblob: func.InputStream):
     """
     logging.info(f"AZURE TRIGGER: Função acionada por blob: {myblob.name}")
     try:
+        # Pega a connection string das configurações do ambiente
         connection_string = os.environ["AzureWebJobsStorage"]
+        
+        # Inicializa os clientes de serviço que serão passados para a lógica principal
         blob_service_client = BlobServiceClient.from_connection_string(connection_string)
         table_client = TableServiceClient.from_connection_string(connection_string).get_table_client("jobs")
         
+        # Chama a função de lógica de negócio, passando todos os parâmetros necessários
         process_event(
             blob_name=os.path.basename(myblob.name),
             blob_stream=myblob,
@@ -33,5 +33,10 @@ def main(myblob: func.InputStream):
             blob_service_client=blob_service_client,
             table_client=table_client
         )
+        logging.info(f"AZURE TRIGGER: Chamada para process_event concluída para o blob {myblob.name}.")
+
     except Exception as e:
-        logging.error(f"AZURE TRIGGER: Erro crítico ao inicializar. {e}", exc_info=True)
+        # Captura e loga qualquer erro durante a inicialização ou execução
+        logging.error(f"AZURE TRIGGER: Erro crítico. {e}", exc_info=True)
+        # Lançar a exceção garante que a execução seja marcada como "Falha" no Azure.
+        raise

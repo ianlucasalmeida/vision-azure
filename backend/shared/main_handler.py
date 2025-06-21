@@ -1,55 +1,63 @@
 # Ficheiro: backend/shared/main_handler.py
+
 import logging
-import os
+from azure.storage.blob import BlobServiceClient
+from azure.data.tables import TableServiceClient
+import azure.functions as func
 
-# Importa os seus subprogramas a partir da pasta 'processors'
-from processors import image_processor, video_processor, pdf_processor, slideshow_creator
+def process_event(blob_name: str, blob_stream: func.InputStream, blob_metadata: dict, blob_service_client: BlobServiceClient, table_client: TableServiceClient):
+    """
+    Contém a lógica de negócio real para processar o blob.
+    Esta função é chamada pelo __init__.py do gatilho.
+    """
+    logging.info(f"[HANDLER]: Iniciando o processamento para o blob: {blob_name}")
+    logging.info(f"[HANDLER]: Metadados recebidos: {blob_metadata}")
 
-JOBS_TABLE = "jobs"
-INPUT_CONTAINER = "input-files"
-OUTPUT_CONTAINER = "output-files"
-
-def process_event(blob_name, blob_stream, blob_metadata, blob_service_client, table_client):
-    job_id = os.path.splitext(blob_name)[0]
-    logging.info(f"HANDLER: Processando job_id: {job_id}")
-    job_entity = {"PartitionKey": "jobs", "RowKey": job_id}
     try:
-        job_entity["status"] = "processing"
+        # --- INÍCIO DA SUA LÓGICA DE NEGÓCIO ---
+
+        # Exemplo: Ler o conteúdo do blob
+        content = blob_stream.read()
+        logging.info(f"[HANDLER]: {len(content)} bytes lidos do blob.")
+
+        # Exemplo: Usar o cliente de tabela para atualizar um status
+        # Supondo que o nome do blob seja a RowKey na sua tabela de jobs
+        job_entity = {
+            'PartitionKey': 'blob-processing',
+            'RowKey': blob_name,
+            'status': 'Processing',
+            'file_size': len(content)
+        }
         table_client.upsert_entity(entity=job_entity)
+        logging.info(f"[HANDLER]: Entidade da tabela para '{blob_name}' atualizada para 'Processing'.")
 
-        operation = blob_metadata.get('operation')
-        params = blob_metadata.get('params')
-        result_data = None
-        logging.info(f"HANDLER: Roteando para a operação: '{operation}'")
+        # ==========================================================
+        # ||                                                      ||
+        # ||  SUA LÓGICA PRINCIPAL DE PROCESSAMENTO VAI AQUI...   ||
+        # ||  (ex: analisar imagem, extrair dados, etc.)          ||
+        # ||                                                      ||
+        # ==========================================================
 
-        # Roteamento para o processador correto
-        if operation.startswith('img_'):
-            result_data = image_processor.handle(operation, blob_stream, blob_service_client, blob_name, OUTPUT_CONTAINER, params)
-        elif operation.startswith('video_'):
-            result_data = video_processor.handle(operation, blob_stream, blob_service_client, blob_name, OUTPUT_CONTAINER, params)
-        elif operation.startswith('pdf_'):
-            result_data = pdf_processor.handle(operation, blob_stream, blob_service_client, blob_name, OUTPUT_CONTAINER, params)
-        elif operation == 'create_slideshow':
-            result_data = slideshow_creator.handle(operation, blob_stream, blob_service_client, blob_name, OUTPUT_CONTAINER, params)
-        else:
-            raise ValueError(f"Operação desconhecida: {operation}")
-        
-        if not result_data or 'outputUrl' not in result_data:
-            raise Exception("Processamento não retornou uma URL de saída.")
-
-        job_entity["status"] = "completed"
-        job_entity["outputUrl"] = result_data.get('outputUrl')
-        if result_data.get('shortUrl'):
-            job_entity["shortUrl"] = result_data.get('shortUrl')
-        
+        # Exemplo: Atualizar a tabela ao final do processamento
+        job_entity['status'] = 'Completed'
         table_client.upsert_entity(entity=job_entity)
-        logging.info(f"HANDLER: Job {job_id} concluído.")
+        logging.info(f"[HANDLER]: Entidade da tabela para '{blob_name}' atualizada para 'Completed'.")
 
-        input_blob_client = blob_service_client.get_blob_client(container=INPUT_CONTAINER, blob=blob_name)
-        input_blob_client.delete_blob()
-        logging.info(f"HANDLER: Ficheiro de entrada {blob_name} excluído.")
+        # --- FIM DA SUA LÓGICA DE NEGÓCIO ---
+
     except Exception as e:
-        logging.error(f"HANDLER: Falha no job {job_id}: {e}", exc_info=True)
-        job_entity["status"] = "failed"
-        job_entity["errorMessage"] = str(e)
-        table_client.upsert_entity(entity=job_entity)
+        logging.error(f"[HANDLER]: Falha ao processar o blob {blob_name}. Erro: {e}", exc_info=True)
+        # Em caso de erro, atualiza a tabela com o status de falha
+        try:
+            failed_entity = {
+                'PartitionKey': 'blob-processing',
+                'RowKey': blob_name,
+                'status': 'Failed',
+                'error_message': str(e)
+            }
+            table_client.upsert_entity(entity=failed_entity)
+        except Exception as table_e:
+            logging.error(f"[HANDLER]: Falha ao registrar o erro na tabela. Erro: {table_e}")
+        
+        # Propaga o erro para que o Azure saiba que a função falhou
+        raise
