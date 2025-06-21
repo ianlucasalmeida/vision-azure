@@ -1,13 +1,9 @@
 name: Build and deploy Web App and Function App to Azure
-
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
-
 jobs:
-  # TRABALHO 1: Implantar o site (Frontend) - Inalterado
   deploy-webapp:
     runs-on: ubuntu-latest
     permissions:
@@ -16,56 +12,46 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Log in to Azure
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_5A49747CD89F4688882C8FF9592511B1 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_20782B1DE23448ACBECB0F8807D5B218 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F558C0E4056849249AA4CE88EDC41690 }}
-
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'vision-az-linux'
           package: ./frontend
-
-  # TRABALHO 2: Implantar a função de processamento (Backend) - Versão Final e Simplificada
   deploy-functionapp:
     runs-on: ubuntu-latest
     needs: deploy-webapp
     permissions:
       id-token: write
       contents: read
-    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Set up Python version
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      # PASSO DE PREPARAÇÃO DO PACOTE (SEM INSTALAR DEPENDÊNCIAS)
-      - name: Create deployment package
+      - name: Create and build self-contained deployment package
         run: |
           mkdir -p dist
           rsync -av backend/functions/ dist/
           rsync -av backend/shared/ dist/shared/
-
+          python -m pip install --upgrade pip
+          pip install -r backend/functions/requirements.txt --target="dist/.python_packages/lib/site-packages"
       - name: Log in to Azure
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_5A49747CD89F4688882C8FF9592511B1 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_20782B1DE23448ACBECB0F8807D5B218 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F558C0E4056849249AA4CE88EDC41690 }}
-
-      # PASSO DE DEPLOY (DEIXANDO O AZURE FAZER O BUILD DAS DEPENDÊNCIAS)
       - name: Deploy to Azure Function App
         uses: Azure/functions-action@v1
         with:
           app-name: 'vision-az-functions-ian'
-          # Aponta para a pasta 'dist' que contém o código e o requirements.txt
           package: dist
