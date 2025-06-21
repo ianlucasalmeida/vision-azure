@@ -2,280 +2,115 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vision - Plataforma de Processamento de Mídia</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ title }}</title>
     <style>
-        :root {
-            --primary: #6366f1; --primary-dark: #4f46e5; --secondary: #8b5cf6;
-            --accent: #06b6d4; --success: #10b981; --error: #ef4444;
-            --warning: #f59e0b; --dark: #0f172a; --dark-lighter: #1e293b;
-            --gray-100: #f1f5f9; --gray-300: #cbd5e1; --gray-400: #94a3b8;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, var(--dark) 0%, var(--dark-lighter) 100%); color: white; min-height: 100vh; overflow-x: hidden; }
-        .bg-animation { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
-        .bg-animation::before { content: ''; position: absolute; width: 200%; height: 200%; background: radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 40%), radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 40%), radial-gradient(circle at 40% 80%, rgba(6, 182, 212, 0.1) 0%, transparent 40%); animation: float 20s ease-in-out infinite; }
-        @keyframes float { 0%, 100% { transform: translate(-50px, -50px) rotate(0deg); } 33% { transform: translate(30px, -30px) rotate(120deg); } 66% { transform: translate(-20px, 20px) rotate(240deg); } }
-        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; position: relative; z-index: 1; }
-        .header { text-align: center; margin-bottom: 4rem; padding: 2rem 0; }
-        .header h1 { font-size: clamp(2.5rem, 5vw, 4rem); font-weight: 900; background: linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4); background-size: 200% 200%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: gradient-shift 3s ease-in-out infinite; margin-bottom: 1rem; }
-        @keyframes gradient-shift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
-        .header p { font-size: 1.25rem; color: var(--gray-400); max-width: 600px; margin: 0 auto; line-height: 1.6; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; margin-bottom: 4rem; }
-        .tool-card { background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 2.5rem; cursor: pointer; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); text-align: center; position: relative; overflow: hidden; }
-        .tool-card:hover { transform: translateY(-8px) scale(1.02); border-color: rgba(99, 102, 241, 0.3); box-shadow: 0 20px 40px rgba(99, 102, 241, 0.1); }
-        .tool-card .icon { background: linear-gradient(135deg, var(--primary), var(--secondary)); border-radius: 20px; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem auto; position: relative; box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3); }
-        .tool-card .icon svg { width: 40px; height: 40px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); }
-        .tool-card h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem; color: white; }
-        .tool-card p { color: var(--gray-400); line-height: 1.6; font-size: 1rem; }
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); align-items: center; justify-content: center; animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .modal-content { background: linear-gradient(145deg, var(--dark-lighter), var(--dark)); border: 1px solid rgba(255,255,255,0.1); width: 90%; max-width: 500px; border-radius: 24px; position: relative; animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden; }
-        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        .modal-header { padding: 2rem 2rem 1rem 2rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .modal-body { padding: 2rem; }
-        .close-btn { position: absolute; top: 1rem; right: 1.5rem; background: rgba(255,255,255,0.1); border: none; color: var(--gray-400); font-size: 24px; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
-        .close-btn:hover { background: rgba(255,255,255,0.2); color: white; }
-        .modal h2 { font-size: 1.75rem; font-weight: 700; color: white; margin-bottom: 0.5rem; }
-        label { display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--gray-300); font-size: 0.9rem; }
-        input[type="file"], input[type="number"], select { width: 100%; padding: 1rem; margin-bottom: 1.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: white; font-size: 1rem; transition: all 0.2s; }
-        .btn { width: 100%; padding: 1rem 2rem; border: none; border-radius: 12px; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
-        .btn:disabled { background: var(--gray-600); cursor: not-allowed; }
-        .status-message { margin-top: 1rem; padding: 1rem; border-radius: 12px; font-size: 0.9rem; display: none; }
-        .status-message.success { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: var(--success); }
-        .status-message.error { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--error); }
-        .status-message.info { background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.2); color: var(--accent); }
-        .download-link { color: var(--success); font-weight: 600; text-decoration: underline; }
-        .short-link-container { margin-top: 0.5rem; font-size: 0.9rem; }
-        .short-link { background: var(--gray-800); padding: 0.25rem 0.5rem; border-radius: 6px; font-family: monospace; }
-        .loading-spinner { display: none; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 1s ease-in-out infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        body { font-family: sans-serif; margin: 2em; }
+        .container { max-width: 600px; margin: auto; }
+        #status, #result { margin-top: 1em; padding: 1em; border-radius: 5px; }
+        .processing { background-color: #e6f7ff; border: 1px solid #91d5ff; }
+        .completed { background-color: #f6ffed; border: 1px solid #b7eb8f; }
+        .failed { background-color: #fff1f0; border: 1px solid #ffa39e; }
+        #result img { max-width: 100%; margin-top: 1em; }
     </style>
 </head>
 <body>
-    <div class="bg-animation"></div>
     <div class="container">
-        <header class="header">
-            <h1>Vision</h1>
-            <p>Transforme os seus ficheiros com tecnologia de ponta. Processamento rápido, seguro e profissional.</p>
-        </header>
+        <h1>Upload de Imagem para Processamento</h1>
+        <form id="upload-form">
+            <label for="file-input">Escolha uma imagem:</label>
+            <input id="file-input" type="file" name="file" required title="Selecione um arquivo de imagem">
+            <input type="hidden" name="operation" value="img_to_bw">
+            <button type="submit">Enviar</button>
+        </form>
 
-        <main>
-            <div class="grid">
-                 <div class="tool-card" data-modal="image-modal">
-                    <div class="icon"><svg fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"></path></svg></div>
-                    <h2>Ferramentas de Imagem</h2>
-                    <p>Aplique filtros profissionais como Preto & Branco e Sépia com qualidade premium.</p>
-                </div>
-                <div class="tool-card" data-modal="video-modal">
-                    <div class="icon"><svg fill="currentColor" viewBox="0 0 20 20"><path d="M15 10a5 5 0 11-10 0 5 5 0 0110 0z"></path><path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z"></path><path d="M11.252 2H8.014a8.014 8.014 0 00-5.762 13.748L11.252 2z"></path></svg></div>
-                    <h2>Conversão de Vídeo</h2>
-                    <p>Converta vídeos para MP4 otimizado e gere thumbnails de alta qualidade.</p>
-                </div>
-                <div class="tool-card" data-modal="slideshow-modal">
-                    <div class="icon"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"></path></svg></div>
-                    <h2>Criador de Slideshow</h2>
-                    <p>Transforme as suas fotos num vídeo slideshow cinematográfico com transições suaves.</p>
-                </div>
-                <div class="tool-card" data-modal="pdf-modal">
-                    <div class="icon"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path></svg></div>
-                    <h2>Gestão de Documentos</h2>
-                    <p>Una múltiplos PDFs ou converta documentos para imagens com precisão perfeita.</p>
-                </div>
-            </div>
-        </main>
+        <div id="status"></div>
+        <div id="result"></div>
     </div>
 
-    <!-- Modais (a estrutura é similar para todos) -->
-    <div id="image-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Processamento de Imagem</h2>
-                <button class="close-btn">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form>
-                    <label for="image-op">Selecione o filtro:</label>
-                    <select name="operation" id="image-op" required>
-                        <option value="img_to_bw">Converter para Preto e Branco</option>
-                        <option value="img_to_sepia">Aplicar Filtro Sépia</option>
-                    </select>
-                    <label for="image-file">Escolha a sua imagem:</label>
-                    <input type="file" name="file" id="image-file" accept="image/*" required>
-                    <button type="submit" class="btn"><span class="btn-text">Processar Imagem</span><span class="loading-spinner"></span></button>
-                </form>
-                <div class="status-message">Aguardando envio...</div>
-            </div>
-        </div>
-    </div>
-    <div id="video-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Conversão de Vídeo</h2>
-                <button class="close-btn">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form>
-                    <label for="video-op">Selecione a operação:</label>
-                    <select name="operation" id="video-op" required>
-                        <option value="video_to_mp4">Converter para MP4</option>
-                        <option value="generate_thumbnail">Gerar Thumbnail (segundo 2)</option>
-                    </select>
-                    <label for="video-file">Escolha o seu vídeo:</label>
-                    <input type="file" name="file" id="video-file" accept="video/*" required>
-                    <button type="submit" class="btn"><span class="btn-text">Processar Vídeo</span><span class="loading-spinner"></span></button>
-                </form>
-                <div class="status-message">Aguardando envio...</div>
-            </div>
-        </div>
-    </div>
-    <div id="slideshow-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header"><h2>Criador de Slideshow</h2><button class="close-btn">&times;</button></div>
-            <div class="modal-body">
-                <form>
-                    <input type="hidden" name="operation" value="create_slideshow">
-                    <label for="slideshow-files">Arquivo ZIP com imagens:</label>
-                    <input type="file" name="file" id="slideshow-files" accept=".zip" required>
-                    <label for="slide-duration">Duração por imagem (segundos):</label>
-                    <input type="number" name="params" id="slide-duration" value="3" min="1" max="10" required>
-                    <button type="submit" class="btn"><span class="btn-text">Criar Slideshow</span><span class="loading-spinner"></span></button>
-                </form>
-                <div class="status-message">Aguardando envio...</div>
-            </div>
-        </div>
-    </div>
-    <div id="pdf-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header"><h2>Gestão de Documentos</h2><button class="close-btn">&times;</button></div>
-            <div class="modal-body">
-                <form>
-                    <label for="pdf-op">Selecione a operação:</label>
-                    <select name="operation" id="pdf-op" required>
-                        <option value="pdf_to_images">Converter PDF para Imagens (ZIP)</option>
-                        <option value="merge_pdfs">Unir PDFs (envie ZIP)</option>
-                    </select>
-                    <label for="pdf-file">Escolha o ficheiro (.pdf ou .zip):</label>
-                    <input type="file" name="file" id="pdf-file" accept=".pdf,.zip" required>
-                    <button type="submit" class="btn"><span class="btn-text">Processar Documento</span><span class="loading-spinner"></span></button>
-                </form>
-                <div class="status-message">Aguardando envio...</div>
-            </div>
-        </div>
-    </div>
-    
     <script>
-        // Lógica para abrir e fechar modais
-        const toolCards = document.querySelectorAll('.tool-card');
-        const closeBtns = document.querySelectorAll('.close-btn');
+        const form = document.getElementById('upload-form');
+        const statusDiv = document.getElementById('status');
+        const resultDiv = document.getElementById('result');
+        let pollingInterval;
 
-        toolCards.forEach(card => card.addEventListener('click', () => {
-            const modal = document.getElementById(card.dataset.modal);
-            resetModal(modal);
-            modal.style.display = 'flex';
-        }));
-        
-        const closeModal = (modal) => modal.style.display = 'none';
-        closeBtns.forEach(btn => btn.addEventListener('click', () => closeModal(btn.closest('.modal'))));
-        window.addEventListener('click', (event) => {
-            if (event.target.classList.contains('modal')) closeModal(event.target);
-        });
-        
-        function resetModal(modal) {
-            const form = modal.querySelector('form');
-            if (form) form.reset();
-            const statusMessage = modal.querySelector('.status-message');
-            showStatusMessage(statusMessage, 'Aguardando envio...', 'info');
-            const btn = modal.querySelector('.btn');
-            btn.disabled = false;
-            btn.querySelector('.btn-text').style.display = 'inline';
-            btn.querySelector('.loading-spinner').style.display = 'none';
-        }
+        form.addEventListener('submit', async function(event) {
+            event.preventDefault();
 
-        // Lógica de submissão de formulário
-        document.querySelectorAll('form').forEach(form => {
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                
-                const modal = form.closest('.modal');
-                const btn = form.querySelector('.btn');
-                const btnText = btn.querySelector('.btn-text');
-                const spinner = btn.querySelector('.loading-spinner');
-                const statusMessage = modal.querySelector('.status-message');
-                
-                const fileInput = form.querySelector('input[type="file"]');
-                if (!fileInput.files || fileInput.files.length === 0) {
-                    showStatusMessage(statusMessage, 'Por favor, selecione um ficheiro.', 'error');
-                    return;
+            // Limpa status e resultados anteriores
+            statusDiv.innerHTML = '';
+            statusDiv.className = '';
+            resultDiv.innerHTML = '';
+            
+            statusDiv.className = 'processing';
+            statusDiv.innerText = 'Enviando arquivo...';
+
+            const formData = new FormData(form);
+            
+            try {
+                // 1. FAZ O UPLOAD E OBTÉM O JOB_ID
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Falha no upload.');
                 }
-                
-                btn.disabled = true;
-                btnText.style.display = 'none';
-                spinner.style.display = 'inline-block';
-                showStatusMessage(statusMessage, 'A enviar ficheiro para o armazenamento...', 'info');
 
-                const formData = new FormData(form);
+                const data = await response.json();
+                const jobId = data.job_id;
 
-                try {
-                    const response = await fetch('/upload', { method: 'POST', body: formData });
-                    const result = await response.json();
-
-                    if (!response.ok) {
-                        throw new Error(result.error || 'Erro desconhecido durante o upload.');
-                    }
-                    
-                    showStatusMessage(statusMessage, `Ficheiro enviado! A aguardar processamento...`, 'info');
-                    pollForStatus(result.jobId, statusMessage, btn);
-
-                } catch (error) {
-                    showStatusMessage(statusMessage, `Erro no envio: ${error.message}`, 'error');
-                    btn.disabled = false;
-                    btnText.style.display = 'inline';
-                    spinner.style.display = 'none';
+                if (jobId) {
+                    statusDiv.innerText = `Arquivo enviado! Iniciando processamento (Job ID: ${jobId}). Aguarde...`;
+                    // 2. INICIA A CONSULTA PERIÓDICA (POLLING)
+                    pollStatus(jobId);
+                } else {
+                    throw new Error('Não foi possível obter o ID do trabalho.');
                 }
-            });
+
+            } catch (error) {
+                statusDiv.className = 'failed';
+                statusDiv.innerText = `Erro: ${error.message}`;
+            }
         });
 
-        function pollForStatus(jobId, statusMessage, btn) {
-            const btnText = btn.querySelector('.btn-text');
-            const spinner = btn.querySelector('.loading-spinner');
+        function pollStatus(jobId) {
+            // Limpa qualquer polling anterior
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+            }
 
-            const intervalId = setInterval(async () => {
+            // Pergunta o status a cada 3 segundos
+            pollingInterval = setInterval(async () => {
                 try {
+                    // 3. CONSULTA A ROTA DE STATUS
                     const response = await fetch(`/status/${jobId}`);
-                    if (!response.ok) return;
-                    
                     const data = await response.json();
-                    
-                    if (data.status === 'completed') {
-                        clearInterval(intervalId);
-                        let htmlResult = `<a href="${data.outputUrl}" target="_blank" class="download-link">Descarregar Ficheiro Processado</a>`;
-                        if (data.shortUrl) {
-                            htmlResult += `<div class="short-link-container">Link curto: <span class="short-link">${data.shortUrl}</span></div>`;
-                        }
-                        showStatusMessage(statusMessage, htmlResult, 'success');
-                        btn.disabled = false;
-                        btnText.style.display = 'inline';
-                        spinner.style.display = 'none';
-                    } else if (data.status === 'failed') {
-                        clearInterval(intervalId);
-                        showStatusMessage(statusMessage, `Falha no processamento: ${data.errorMessage}`, 'error');
-                        btn.disabled = false;
-                        btnText.style.display = 'inline';
-                        spinner.style.display = 'none';
-                    } else {
-                         showStatusMessage(statusMessage, `A processar... (Estado: ${data.status || 'pendente'})`, 'info');
-                    }
-                } catch (error) {
-                    console.warn('Erro ao verificar o estado, a tentar novamente...', error);
-                }
-            }, 5000);
-        }
 
-        function showStatusMessage(element, message, type) {
-            element.innerHTML = message;
-            element.className = 'status-message ' + type;
-            element.style.display = 'block';
+                    statusDiv.innerText = `Status do trabalho: ${data.status}`;
+
+                    if (data.status === 'Completed') {
+                        // 4. SE COMPLETO, PARA O POLLING E MOSTRA O RESULTADO
+                        clearInterval(pollingInterval);
+                        statusDiv.className = 'completed';
+                        resultDiv.innerHTML = `
+                            <h3>Processamento Concluído!</h3>
+                            <a href="${data.result_url}" target="_blank" download>Baixar Arquivo Processado</a>
+                            <br>
+                            <img src="${data.result_url}" alt="Imagem Processada">
+                        `;
+                    } else if (data.status === 'Failed') {
+                        clearInterval(pollingInterval);
+                        statusDiv.className = 'failed';
+                    }
+
+                } catch (error) {
+                    clearInterval(pollingInterval);
+                    statusDiv.className = 'failed';
+                    statusDiv.innerText = 'Erro ao consultar status do trabalho.';
+                }
+            }, 3000);
         }
     </script>
 </body>
