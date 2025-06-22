@@ -1,4 +1,6 @@
+# Para a aplicação web que recebe os uploads
 Flask
-python-dotenv
+gunicorn
 azure-storage-blob
 azure-data-tables
+cryptography==43.0.3

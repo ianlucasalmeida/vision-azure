@@ -1,13 +1,8 @@
-# Pacote principal do Azure Functions
+# Para a Azure Function que faz o processamento
 azure-functions
-
-# Pacote para interagir com Blob Storage
 azure-storage-blob
-
-# Pacote para interagir com Table Storage
 azure-data-tables
-
-# Suas dependências para processamento de arquivos
 opencv-python-headless
 PyMuPDF
 Pillow
+cryptography==43.0.3
