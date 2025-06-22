@@ -17,15 +17,21 @@ def create_app():
         connection_string = os.environ["AZURE_STORAGE_CONNECTION_STRING"]
         logging.info("AZURE_STORAGE_CONNECTION_STRING carregada com sucesso.")
 
+        # Inicializa o cliente de Blob normalmente
         app.blob_service_client = BlobServiceClient.from_connection_string(connection_string)
         
-        # --- LÓGICA ATUALIZADA: GARANTIR QUE A TABELA 'JOBS' EXISTE ---
+        # --- LÓGICA CORRIGIDA: GARANTIR QUE A TABELA 'JOBS' EXISTE ---
+        # 1. Criar o cliente do SERVIÇO de tabelas
         table_service_client = TableServiceClient.from_connection_string(connection_string)
-        app.jobs_table_client = table_service_client.get_table_client("jobs")
-        app.jobs_table_client.create_table_if_not_exists()
-        logging.info("Tabela 'jobs' verificada e/ou criada com sucesso.")
-        # ----------------------------------------------------------------
 
+        # 2. Usar o cliente de SERVIÇO para criar a tabela se ela não existir
+        table_service_client.create_table_if_not_exists(table_name="jobs")
+        logging.info("Tabela 'jobs' verificada e/ou criada com sucesso.")
+
+        # 3. AGORA, obter o cliente para a tabela específica que sabemos que existe.
+        app.jobs_table_client = table_service_client.get_table_client("jobs")
+        # ----------------------------------------------------------------
+        
         logging.info("Clientes Blob e Table Storage inicializados com sucesso.")
 
     except KeyError:
@@ -33,7 +39,7 @@ def create_app():
         app.blob_service_client = None
         app.jobs_table_client = None
     except Exception as e:
-        logging.error(f"ERRO CRÍTICO ao inicializar clientes Azure: {e}")
+        logging.error(f"ERRO CRÍTICO ao inicializar clientes Azure: {e}", exc_info=True)
         app.blob_service_client = None
         app.jobs_table_client = None
 
