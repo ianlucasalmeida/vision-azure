@@ -1,9 +1,13 @@
 name: Build and deploy Web App and Function App to Azure
+
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   workflow_dispatch:
+
 jobs:
+  # TRABALHO 1: Implantar o site (Frontend) - Inalterado
   deploy-webapp:
     runs-on: ubuntu-latest
     permissions:
@@ -24,32 +28,47 @@ jobs:
         with:
           app-name: 'vision-az-linux'
           package: ./frontend
+
+  # TRABALHO 2: Implantar a função (Backend) - Abordagem Robusta e Auto-Suficiente
   deploy-functionapp:
-    runs-on: ubuntu-latest
+    # MUDANÇA 1: Usar um ambiente de build mais antigo e compatível
+    runs-on: ubuntu-20.04
     needs: deploy-webapp
     permissions:
       id-token: write
       contents: read
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Set up Python version
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Create deployment package
+
+      # MUDANÇA 2: Reintroduzir o passo de build manual completo
+      - name: Create and build self-contained deployment package
         run: |
           mkdir -p dist
           rsync -av backend/functions/ dist/
           rsync -av backend/shared/ dist/shared/
+          
+          python -m pip install --upgrade pip
+          # Instala as dependências do requirements.txt DIRETAMENTE dentro do pacote
+          pip install -r backend/functions/requirements.txt --target="dist/.python_packages/lib/site-packages"
+
       - name: Log in to Azure
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_5A49747CD89F4688882C8FF9592511B1 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_20782B1DE23448ACBECB0F8807D5B218 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F558C0E4056849249AA4CE88EDC41690 }}
+
       - name: Deploy to Azure Function App
         uses: Azure/functions-action@v1
         with:
           app-name: 'vision-az-functions-ian'
           package: dist
+          # MUDANÇA 3: Desabilitar o build no Azure, pois já fizemos tudo
+          enable-oryx-build: false
