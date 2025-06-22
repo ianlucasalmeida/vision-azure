@@ -1,4 +1,3 @@
-# Para a aplicação web que recebe os uploads
 Flask
 gunicorn
 azure-storage-blob

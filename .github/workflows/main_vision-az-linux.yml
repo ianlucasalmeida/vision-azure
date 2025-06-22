@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  # TRABALHO 1: Implantar o site (Frontend) - Inalterado
+  # Job do Web App (inalterado)
   deploy-webapp:
     runs-on: ubuntu-latest
     permissions:
@@ -29,10 +29,9 @@ jobs:
           app-name: 'vision-az-linux'
           package: ./frontend
 
-  # TRABALHO 2: Implantar a função (Backend) - Abordagem Robusta e Auto-Suficiente
+  # Job da Function App (simplificado para usar o build remoto do Azure)
   deploy-functionapp:
-    # MUDANÇA 1: Usar um ambiente de build mais antigo e compatível
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     needs: deploy-webapp
     permissions:
       id-token: write
@@ -47,16 +46,12 @@ jobs:
         with:
           python-version: '3.11'
 
-      # MUDANÇA 2: Reintroduzir o passo de build manual completo
-      - name: Create and build self-contained deployment package
+      # Apenas prepara o pacote com o código-fonte
+      - name: Create deployment package
         run: |
           mkdir -p dist
           rsync -av backend/functions/ dist/
           rsync -av backend/shared/ dist/shared/
-          
-          python -m pip install --upgrade pip
-          # Instala as dependências do requirements.txt DIRETAMENTE dentro do pacote
-          pip install -r backend/functions/requirements.txt --target="dist/.python_packages/lib/site-packages"
 
       - name: Log in to Azure
         uses: azure/login@v2
@@ -65,10 +60,9 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_20782B1DE23448ACBECB0F8807D5B218 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F558C0E4056849249AA4CE88EDC41690 }}
 
+      # Deixa o Azure ler o requirements.txt e instalar as dependências
       - name: Deploy to Azure Function App
         uses: Azure/functions-action@v1
         with:
           app-name: 'vision-az-functions-ian'
           package: dist
-          # MUDANÇA 3: Desabilitar o build no Azure, pois já fizemos tudo
-          enable-oryx-build: false
